@@ -12,6 +12,7 @@ import type { Track } from "../data/work";
  *  Never autoplays — playback is always user-initiated. */
 interface Props { track?: Track; label?: string; rot?: number; }
 const { track, label = "UPLOAD AUDIO SAMPLES", rot = -0.8 } = Astro.props;
+import { u } from "../lib/url";
 ---
 
 {track ? (
@@ -24,7 +25,7 @@ const { track, label = "UPLOAD AUDIO SAMPLES", rot = -0.8 } = Astro.props;
       class="tr__audio"
       controls
       preload="none"
-      src={track.src}
+      src={u(track.src)}
       aria-label={`${track.title} — ${track.role}`}
     ></audio>
     {track.note && <p class="tr__note typewriter">{track.note}</p>}

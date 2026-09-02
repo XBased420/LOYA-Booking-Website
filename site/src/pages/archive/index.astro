@@ -9,6 +9,7 @@ import ProjectCard from "../../components/ProjectCard.astro";
 import { categories, archiveMedia, projects, mediaFor, projectsFor } from "../../data/work";
 
 const tilt = (i: number) => ((i % 5) - 2) * 1.1;
+import { u } from "../../lib/url";
 ---
 
 <Base
@@ -40,7 +41,7 @@ const tilt = (i: number) => ((i % 5) - 2) * 1.1;
               <h2 class="display cat__h">{c.label}</h2>
               <p class="cat__b typewriter">{c.blurb}</p>
             </div>
-            <a class="cat__more" href={`/archive/${c.slug}`}>
+            <a class="cat__more" href={u(`/archive/${c.slug}`)}>
               Open {c.label} &rarr;
             </a>
           </div>

@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Paper from "../components/Paper.astro";
 import Tape from "../components/Tape.astro";
@@ -37,7 +37,7 @@ const wall = [
         <span class="reel__stage">
           <img
             class="reel__still"
-            src="/media/poster/hero-loop.jpg"
+            src={u("/media/poster/hero-loop.jpg")}
             alt="Liz at the console, mid-session."
             width="1280" height="720" decoding="async"
             loading="eager" fetchpriority="high"
@@ -62,8 +62,8 @@ const wall = [
                 which is plenty for a card this size and a third of the
                 weight. H.264 first (most reliably hardware-decoded),
                 VP9 behind it for builds without proprietary codecs. */}
-            <source src="/media/video/hero-loop-trim.mp4" type="video/mp4" />
-            <source src="/media/video/hero-loop-trim.webm" type="video/webm" />
+            <source src={u("/media/video/hero-loop-trim.mp4")} type="video/mp4" />
+            <source src={u("/media/video/hero-loop-trim.webm")} type="video/webm" />
           </video>
         </span>
         <figcaption class="hand reel__cap">in the room</figcaption>
@@ -75,8 +75,8 @@ const wall = [
       </Paper>
 
       <div class="hero__cta">
-        <a class="btn btn--primary" href="/book">Book a Session</a>
-        <a class="btn btn--ghost" href="/archive">See the work</a>
+        <a class="btn btn--primary" href={u("/book")}>Book a Session</a>
+        <a class="btn btn--ghost" href={u("/archive")}>See the work</a>
       </div>
     </div>
 
@@ -121,7 +121,7 @@ const wall = [
       <ul class="wall">
         {wall.map((w, i) => (
           <li class="wall__i" style={`--i:${i};`}>
-            <a class="wall__link" href={w.href}>
+            <a class="wall__link" href={u(w.href)}>
               <span class="peek" style={`--rot:${w.rot}deg;`}>
                 <Polaroid
                   name={w.img}

@@ -1,5 +1,5 @@
 ---
-import Base from "../../layouts/Base.astro";
+import { u } from "../../lib/url";import Base from "../../layouts/Base.astro";
 import BookBand from "../../components/BookBand.astro";
 import Polaroid from "../../components/Polaroid.astro";
 import Paper from "../../components/Paper.astro";
@@ -34,7 +34,7 @@ const tilt = (i: number) => ((i % 5) - 2) * 1.2;
   <section class="section head">
     <div class="wrap">
       <p class="kicker">
-        <a class="head__up" href="/archive">Archive</a> / {cat.label}
+        <a class="head__up" href={u("/archive")}>Archive</a> / {cat.label}
       </p>
       <h1 class="display page__h">{cat.label}</h1>
       <p class="head__lede">{cat.blurb}</p>
@@ -103,7 +103,7 @@ const tilt = (i: number) => ((i % 5) - 2) * 1.2;
 
   <section class="section">
     <div class="wrap back">
-      <a class="btn btn--ghost" href="/archive">&larr; All work</a>
+      <a class="btn btn--ghost" href={u("/archive")}>&larr; All work</a>
     </div>
   </section>
 

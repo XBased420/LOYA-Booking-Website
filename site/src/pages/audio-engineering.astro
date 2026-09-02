@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Paper from "../components/Paper.astro";
 import Photo from "../components/Photo.astro";
@@ -41,7 +41,7 @@ const tracks = tracksFor("audio-engineering");
         Recording, mixing, editing, and production &mdash; trained at {education.school}, working out of a professional room.
       </p>
       <div class="ae-hero__cta">
-        <a class="btn btn--primary" href="/book">Book Studio Time</a>
+        <a class="btn btn--primary" href={u("/book")}>Book Studio Time</a>
         <a class="btn btn--ghost" href="#services">What that covers</a>
       </div>
     </div>
@@ -132,7 +132,7 @@ const tracks = tracksFor("audio-engineering");
           evidence — link into the filter, never restate its content */}
       <p class="sec__lede">
         Project records live in the archive so they exist in exactly one place.
-        <a class="proj__link" href="/archive/audio-engineering">See audio engineering work &rarr;</a>
+        <a class="proj__link" href={u("/archive/audio-engineering")}>See audio engineering work &rarr;</a>
       </p>
 
       {projects.length > 0 ? (

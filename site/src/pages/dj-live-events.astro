@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Paper from "../components/Paper.astro";
 import Slot from "../components/Slot.astro";
@@ -23,9 +23,9 @@ const live = mediaFor("live-sound");
   <section class="dj-hero grain">
     <video
       class="dj-hero__reel" data-reel autoplay muted loop playsinline
-      poster="/media/img/dj-event-1200.jpg" aria-hidden="true" tabindex="-1"
+      poster={u("/media/img/dj-event-1200.jpg")} aria-hidden="true" tabindex="-1"
     >
-      <source src="/media/video/dj-loop.mp4" type="video/mp4" />
+      <source src={u("/media/video/dj-loop.mp4")} type="video/mp4" />
     </video>
     <div class="dj-hero__veil"></div>
 
@@ -36,7 +36,7 @@ const live = mediaFor("live-sound");
         Reading a room and holding it &mdash; receptions, parties and live
         rooms, plus the sound and AV that make them work.
       </p>
-      <a class="btn btn--primary" href="/book">Book for an event</a>
+      <a class="btn btn--primary" href={u("/book")}>Book for an event</a>
     </div>
   </section>
 
@@ -90,7 +90,7 @@ const live = mediaFor("live-sound");
           </li>
         ))}
       </ul>
-      <a class="more" href="/archive/dj-events">Open the DJ / Events archive &rarr;</a>
+      <a class="more" href={u("/archive/dj-events")}>Open the DJ / Events archive &rarr;</a>
     </div>
   </section>
 
@@ -109,7 +109,7 @@ const live = mediaFor("live-sound");
             </li>
           ))}
         </ul>
-        <a class="more" href="/archive/live-sound">Open the Live Sound archive &rarr;</a>
+        <a class="more" href={u("/archive/live-sound")}>Open the Live Sound archive &rarr;</a>
       </div>
     </section>
   )}

@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { u } from "./url";
 import path from "node:path";
 
 /** Scans the staged derivative ladder once at build time and indexes it by
@@ -26,7 +27,7 @@ export const hasImage = (name: string) => index.has(name);
 export function srcset(name: string, ext: "avif" | "webp" | "jpg") {
   const e = index.get(name);
   if (!e) return "";
-  return e[ext].map((w) => `/media/img/${name}-${w}.${ext} ${w}w`).join(", ");
+  return e[ext].map((w) => `${u(`/media/img/${name}-${w}.${ext}`)} ${w}w`).join(", ");
 }
 
 /** The <img src> fallback. Deliberately a MID width, not the largest:
@@ -38,7 +39,7 @@ export function fallback(name: string) {
   if (!e || !e.jpg.length) return "";
   const pick =
     e.jpg.find((w) => w >= 1000) ?? e.jpg[e.jpg.length - 1];
-  return `/media/img/${name}-${pick}.jpg`;
+  return u(`/media/img/${name}-${pick}.jpg`);
 }
 
 /** Smallest width, used to reserve layout space and avoid CLS. */

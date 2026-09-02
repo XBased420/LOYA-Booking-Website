@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Paper from "../components/Paper.astro";
 import Slot from "../components/Slot.astro";
@@ -92,7 +92,7 @@ const musicMedia = mediaFor("music");
         <p class="note__p">
           Music records live in the archive alongside everything else, so they
           exist in exactly one place.
-          <a class="note__a" href="/archive/music">Open the music archive &rarr;</a>
+          <a class="note__a" href={u("/archive/music")}>Open the music archive &rarr;</a>
         </p>
       </Paper>
     </div>

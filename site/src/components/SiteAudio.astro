@@ -24,12 +24,13 @@
 import { backgroundTrack as track } from "../data/work";
 
 const label = `${track.title} by ${track.artist}`;
+import { u } from "../lib/url";
 ---
 
 <audio
   id="site-audio"
   transition:persist="site-audio"
-  src={track.src}
+  src={u(track.src)}
   preload="metadata"
   loop
   aria-label={label}
@@ -41,7 +42,7 @@ const label = `${track.title} by ${track.artist}`;
     takes its place otherwise — same track, same corner, no custom code. */}
 <noscript>
   <div class="dock dock--plain">
-    <audio src={track.src} controls preload="none" aria-label={label}></audio>
+    <audio src={u(track.src)} controls preload="none" aria-label={label}></audio>
   </div>
 </noscript>
 

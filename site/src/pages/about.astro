@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import BookBand from "../components/BookBand.astro";
 import Polaroid from "../components/Polaroid.astro";
 import Paper from "../components/Paper.astro";
@@ -133,7 +133,7 @@ const grads = [
     <div class="wrap next__in">
       <h2 class="display next__h">The path here</h2>
       <p class="next__p">Six stops, from a Recording Arts degree to the studio floor.</p>
-      <a class="btn btn--primary" href="/experience">See the experience</a>
+      <a class="btn btn--primary" href={u("/experience")}>See the experience</a>
     </div>
   </section>
   <BookBand image="console-portrait" />

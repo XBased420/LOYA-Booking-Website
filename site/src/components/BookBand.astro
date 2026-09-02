@@ -1,5 +1,5 @@
 ---
-import Photo from "./Photo.astro";
+import { u } from "../lib/url";import Photo from "./Photo.astro";
 
 /** The closing conversion band. Repeated across pages, so it lives here
  *  rather than being pasted with slightly different padding each time. */
@@ -22,7 +22,7 @@ const {
   <div class="wrap band__in">
     <h2 class="display band__h">{heading}</h2>
     <p class="band__p">{body}</p>
-    <a class="btn btn--primary band__btn" href="/book">{cta}</a>
+    <a class="btn btn--primary band__btn" href={u("/book")}>{cta}</a>
   </div>
 </section>
 

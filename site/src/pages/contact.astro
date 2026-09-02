@@ -1,5 +1,5 @@
 ---
-import Base from "../layouts/Base.astro";
+import { u } from "../lib/url";import Base from "../layouts/Base.astro";
 import Paper from "../components/Paper.astro";
 import Photo from "../components/Photo.astro";
 import { site, isPlaceholder, channelHref, contactChannels } from "../data/site";
@@ -33,7 +33,7 @@ const enquiries = [
         For booking a studio session, use the booking form &mdash; it captures
         what I need to know. For anything else, this is the place.
       </p>
-      <a class="btn btn--primary" href="/book">Book a Session</a>
+      <a class="btn btn--primary" href={u("/book")}>Book a Session</a>
     </div>
   </section>
 

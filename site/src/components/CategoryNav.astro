@@ -1,12 +1,12 @@
 ---
-import { categories, mediaFor, projectsFor } from "../data/work";
+import { u } from "../lib/url";import { categories, mediaFor, projectsFor } from "../data/work";
 interface Props { current?: string; }
 const { current } = Astro.props;
 ---
 <nav class="cats" aria-label="Archive categories">
   <ul>
     <li>
-      <a href="/archive" aria-current={!current ? "page" : undefined}>
+      <a href={u("/archive")} aria-current={!current ? "page" : undefined}>
         <span class="cats__l">Everything</span>
       </a>
     </li>
@@ -14,7 +14,7 @@ const { current } = Astro.props;
       const n = mediaFor(c.slug).length + projectsFor(c.slug).length;
       return (
         <li>
-          <a href={`/archive/${c.slug}`}
+          <a href={u(`/archive/${c.slug}`)}
              aria-current={current === c.slug ? "page" : undefined}>
             <span class="cats__l">{c.label}</span>
             <span class="cats__n typewriter">{n}</span>

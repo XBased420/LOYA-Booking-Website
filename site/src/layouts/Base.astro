@@ -1,5 +1,5 @@
 ---
-import "../styles/global.css";
+import { u } from "../lib/url";import "../styles/global.css";
 import Nav from "../components/Nav.astro";
 import SoundField from "../components/SoundField.astro";
 import SiteAudio from "../components/SiteAudio.astro";
@@ -38,7 +38,7 @@ const grain =
   <meta property="og:site_name" content={site.name} />
   <meta property="og:title" content={fullTitle} />
   <meta property="og:description" content={description} />
-  <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+  <meta property="og:image" content={new URL(u(ogImage), Astro.site).href} />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="theme-color" content="#fdf9f8" />
   {/* PREVIEW GUARD — this site carries a real person's name, face and
@@ -93,7 +93,7 @@ const grain =
         </ul>
       )}
 
-      <a class="btn btn--primary" href="/book">Book a Session</a>
+      <a class="btn btn--primary" href={u("/book")}>Book a Session</a>
     </div>
   </footer>
   <style>

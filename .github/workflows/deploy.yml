@@ -1,0 +1,63 @@
+# Builds the Astro site and publishes it to GitHub Pages.
+#
+# Why a workflow and not "Deploy from a branch": Pages can only serve files
+# that are already committed, and this repo holds SOURCE — the built site
+# lives in site/dist, which is deliberately gitignored. Something has to run
+# `astro build`, and this is it.
+#
+# GITHUB_PAGES=1 is what switches astro.config.mjs onto the /LOYA-Booking-Website
+# base path. It is set ONLY here, so local builds via REFRESHBUILD.bat stay
+# at the root and START.bat keeps working unchanged.
+
+name: Deploy site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # lets you redeploy by hand from the Actions tab
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race each other.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Build
+        working-directory: site
+        env:
+          GITHUB_PAGES: "1"
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
