@@ -1,0 +1,247 @@
+---
+import { nav, site } from "../data/site";
+const path = Astro.url.pathname.replace(/\/$/, "") || "/";
+---
+<header class="bar">
+  <a class="mark display" href="/">{site.name}</a>
+
+  <nav class="quick" aria-label="Primary">
+    {nav.filter((n) => ["/archive", "/audio-engineering", "/music"].includes(n.href))
+      .map((n) => (
+        <a href={n.href} aria-current={path === n.href ? "page" : undefined}>{n.label}</a>
+      ))}
+  </nav>
+
+  <div class="right">
+    <a class="btn btn--primary book" href="/book">Book a Session</a>
+
+    <details class="menu">
+      <summary aria-label="All pages">
+        <span class="typewriter">Menu</span>
+        <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      </summary>
+      <div class="sheet">
+        <ul>
+          {nav.map((n, i) => (
+            <li style={`--i:${i};`}>
+              <a href={n.href} aria-current={path === n.href ? "page" : undefined}>
+                <span class="num typewriter">{String(i + 1).padStart(2, "0")}</span>
+                <span class="lbl display">{n.label}</span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </details>
+  </div>
+</header>
+
+<script>
+  /* <details> gives open/close and keyboard focus for free. Everything a
+     menu additionally needs is here: an open AND close animation, Escape,
+     and outside-click.
+
+     Both animations are script-driven. `data-open` is added one frame after
+     the panel renders so the browser has a base state to transition from;
+     removing it plays the exit, and only then does `open` drop — otherwise
+     <details> tears the panel out instantly and there is nothing to animate. */
+  function bindMenu() {
+    const menu = document.querySelector<HTMLDetailsElement>("header .menu");
+    if (!menu || menu.dataset.bound) return;
+    menu.dataset.bound = "1";
+
+    const summary = menu.querySelector("summary");
+    const sheet = menu.querySelector<HTMLElement>(".sheet");
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+    let closing = false;
+
+    /* Fires whenever `open` flips, from a click, the keyboard, or find-in-page. */
+    menu.addEventListener("toggle", () => {
+      if (!menu.open || !sheet || closing) return;
+      if (reduce.matches) { sheet.dataset.open = ""; return; }
+      /* Two frames: one for the panel to render at its base state, one for
+         the change to register as a transition rather than an initial value. */
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => { if (menu.open) sheet.dataset.open = ""; })
+      );
+    });
+
+    function close(refocus = false) {
+      if (!menu.open || closing) return;
+      const finishNow = () => {
+        closing = false;
+        sheet && delete sheet.dataset.open;
+        menu.open = false;
+        if (refocus) summary?.focus();
+      };
+      if (!sheet || reduce.matches) return finishNow();
+
+      closing = true;
+      delete sheet.dataset.open;           // plays the exit transition
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        finishNow();
+      };
+      sheet.addEventListener("transitionend", finish, { once: true });
+      /* transitionend never arrives if the panel is hidden mid-flight —
+         a background tab, or a second close racing this one. */
+      setTimeout(finish, 400);
+    }
+
+    /* The summary's own click would flip `open` off immediately and skip the
+       exit animation, so take it over while the menu is open. */
+    summary?.addEventListener("click", (e) => {
+      if (menu.open) { e.preventDefault(); close(true); }
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") close(true);
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (menu.open && !menu.contains(e.target as Node)) close();
+    });
+    /* Client-side navigation swaps the page under an open menu — drop it
+       outright, there is no panel left to animate. */
+    document.addEventListener("astro:before-swap", () => {
+      closing = false;
+      if (sheet) delete sheet.dataset.open;
+      menu.open = false;
+    });
+  }
+  document.addEventListener("astro:page-load", bindMenu);
+</script>
+
+<style>
+  .bar {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: var(--s-5);
+    padding: var(--s-3) clamp(1rem, 4vw, 3rem);
+    background: color-mix(in srgb, var(--ground-0) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--rule-1);
+  }
+  .mark { font-size: var(--t-md); letter-spacing: .04em; text-decoration: none; }
+  .quick { display: none; gap: var(--s-5); margin-inline-start: auto; }
+  .quick a {
+    font-size: var(--t-sm); text-decoration: none; color: var(--text-2);
+    padding-block: var(--s-2); border-bottom: 2px solid transparent;
+  }
+  .quick a:hover, .quick a[aria-current="page"] {
+    color: var(--text-1); border-bottom-color: var(--violet-deep);
+  }
+  .right { display: flex; align-items: center; gap: var(--s-3); margin-inline-start: auto; }
+  @media (min-width: 62rem) {
+    .quick { display: flex; }
+    .right { margin-inline-start: var(--s-6); }
+  }
+  .book { font-size: var(--t-xs); padding: var(--s-3) var(--s-4); }
+  @media (max-width: 34rem) { .book { display: none; } }
+
+  /* details/summary disclosure — no JS, keyboard accessible by default */
+  .menu { position: relative; }
+  .menu summary {
+    display: flex; align-items: center; gap: var(--s-2);
+    min-height: 44px; padding: 0 var(--s-3); cursor: pointer;
+    list-style: none; color: var(--text-1); font-size: var(--t-xs);
+    letter-spacing: .2em; text-transform: uppercase;
+    border: 1px solid var(--rule-3);
+  }
+  .menu summary::-webkit-details-marker { display: none; }
+  .bars { display: grid; gap: 3px; }
+  .bars i { display: block; width: 17px; height: 2px; background: currentColor; }
+  .menu[open] summary { background: var(--paper-100); color: var(--paper-ink); }
+
+  /* THE MENU PANEL — a dropdown anchored under its button, on the right.
+
+     It was a full-bleed `position: fixed` sheet, which never worked: .bar
+     sets `backdrop-filter`, and a backdrop-filter (like transform) makes an
+     element the CONTAINING BLOCK for fixed-position descendants. So the
+     sheet resolved `inset: 3.6rem 0 0` against the ~60px header instead of
+     the viewport and rendered as a broken strip with the page showing
+     through it. Anchoring to .menu (position: relative) sidesteps that
+     entirely — and a dropdown is the right shape for nine links anyway. */
+  .sheet {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 10;
+    width: max-content;
+    min-width: 14rem;
+    /* never wider than the viewport minus the bar's own gutter */
+    max-width: calc(100vw - 2rem);
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--paper-100);
+    border: 1px solid var(--rule-2);
+    box-shadow: var(--lift-3);
+    padding: var(--s-2);
+
+    /* Grows out of the button it hangs from. */
+    transform-origin: top right;
+    opacity: 0;
+    transform: translateY(-6px) scale(.97);
+    transition: opacity var(--dur-2) var(--ease-out),
+                transform var(--dur-2) var(--ease-paper);
+  }
+  /* <details> has no open/close animation of its own, and @starting-style
+     does NOT rescue it: a closed <details> hides its content with
+     content-visibility rather than display:none, so the panel never enters
+     the rendering tree from a hidden state and there is nothing to animate
+     from — it just pops in at its final value.
+
+     So the open state is an attribute the script sets one frame after the
+     panel has rendered at the base state above. That one frame is what
+     makes it a genuine transition. Closing removes the attribute and waits
+     for the transition before dropping `open`. */
+  .sheet[data-open] { opacity: 1; transform: none; }
+  .sheet ul {
+    list-style: none; margin: 0; padding: 0;
+    display: grid; gap: 1px;
+  }
+  /* Items arrive just behind the panel, in order. Short steps — nine links
+     at 18ms is a ~160ms tail, enough to read as a cascade without making
+     the last item feel late. */
+  .sheet[data-open] li {
+    opacity: 0;
+    animation: menu-item var(--dur-2) var(--ease-out) forwards;
+    animation-delay: calc(var(--i, 0) * 18ms);
+  }
+  @keyframes menu-item {
+    from { opacity: 0; transform: translateY(-5px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .sheet a {
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    align-items: baseline;
+    gap: var(--s-2);
+    padding: var(--s-3) var(--s-3);
+    text-decoration: none;
+    color: var(--paper-ink);
+    white-space: nowrap;
+  }
+  .sheet a:hover { background: var(--paper-300); }
+  .sheet a[aria-current="page"] {
+    background: var(--paper-200);
+    box-shadow: inset 3px 0 0 var(--pink-deep);
+  }
+  .sheet a[aria-current="page"] .lbl { color: var(--pink-deep); }
+  .num { color: var(--paper-ink-soft); font-size: var(--t-xs); }
+  .lbl { font-size: var(--t-sm); letter-spacing: .04em; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .sheet[data-open] { opacity: 1; transform: none; transition: none; }
+    .sheet[data-open] li { opacity: 1; animation: none; }
+  }
+
+  /* On a phone the Book button is hidden, so the panel can afford to span
+     more of the width and sit as a proper sheet under the bar. */
+  @media (max-width: 34rem) {
+    .sheet { width: calc(100vw - 2rem); }
+    .sheet a { grid-template-columns: 2.2rem 1fr; padding: var(--s-3) var(--s-4); }
+    .lbl { font-size: var(--t-base); }
+  }
+
+</style>

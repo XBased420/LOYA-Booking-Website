@@ -1,0 +1,318 @@
+---
+import Base from "../layouts/Base.astro";
+import Polaroid from "../components/Polaroid.astro";
+import Paper from "../components/Paper.astro";
+import Photo from "../components/Photo.astro";
+import Slot from "../components/Slot.astro";
+import AudioTrack from "../components/AudioTrack.astro";
+import BookBand from "../components/BookBand.astro";
+import { education } from "../data/site";
+import { services, studioTools, tracksFor, projects, studioShots } from "../data/work";
+
+/* Only engineering work belongs in "Work you can hear" — her own releases
+   are filed under music and live on /music and /archive/music. Empty for
+   now, so this section still shows its upload slots. */
+const tracks = tracksFor("audio-engineering");
+---
+
+<Base
+  title="Audio Engineering"
+  description="Recording, mixing, editing, and music production with Liz Loya — a Dallas audio engineer trained in Recording Arts at MediaTech Institute."
+  ogImage="/media/img/console-standing-1200.jpg"
+>
+  <!-- ─── HERO ─────────────────────────────────────────────── -->
+  <section class="ae-hero grain">
+    <Photo
+      name="console-detail"
+      alt=""
+      sizes="100vw"
+      class="ae-hero__bg"
+      loading="eager"
+      fetchpriority="high"
+    />
+    <div class="ae-hero__veil"></div>
+
+    <div class="wrap ae-hero__in">
+      <p class="kicker">Credibility</p>
+      <h1 class="display ae-hero__h"><span>Audio</span> <span>Engineering</span></h1>
+      <p class="ae-hero__lede">
+        {/* keep "at {expr}" on one line — a newline between text and an
+            expression is stripped, which silently glues the words together */}
+        Recording, mixing, editing, and production &mdash; trained at {education.school}, working out of a professional room.
+      </p>
+      <div class="ae-hero__cta">
+        <a class="btn btn--primary" href="/book">Book Studio Time</a>
+        <a class="btn btn--ghost" href="#services">What that covers</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SERVICES ─────────────────────────────────────────── -->
+  <section class="section" id="services">
+    <div class="wrap">
+      <p class="kicker">The work</p>
+      <h2 class="display sec__h">Four things, done properly</h2>
+
+      <ul class="svc">
+        {services.map((s, i) => (
+          <li class="svc__i">
+            <span class="svc__n typewriter">{String(i + 1).padStart(2, "0")}</span>
+            <h3 class="svc__t display">{s.title}</h3>
+            <p class="svc__b">{s.blurb}</p>
+            <ul class="svc__covers typewriter">
+              {s.covers.map((c) => <li>{c}</li>)}
+            </ul>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── THE ROOM ─────────────────────────────────────────── -->
+  <section class="section room">
+    <div class="wrap">
+      <p class="kicker">The room</p>
+      <h2 class="display sec__h">Studio photography</h2>
+      <p class="sec__lede">Where the work actually happens.</p>
+
+      <ul class="room__grid">
+        {studioShots.map((s) => (
+          <li>
+            <Polaroid
+              name={s.img}
+              alt={s.alt}
+              caption={s.cap}
+              rot={s.rot}
+              sizes="(max-width: 48rem) 84vw, (max-width: 72rem) 42vw, 30vw"
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <!-- ─── LISTEN ───────────────────────────────────────────── -->
+  <section class="section listen">
+    <div class="wrap">
+      <p class="kicker">Listen</p>
+      <h2 class="display sec__h">Work you can hear</h2>
+      <p class="sec__lede">
+        Nothing plays on its own &mdash; press play when you want it.
+      </p>
+
+      <div class="listen__grid">
+        {tracks.length > 0 ? (
+          tracks.map((t, i) => (
+            <AudioTrack track={t} rot={(i % 2 === 0 ? -1 : 1) * 0.7} />
+          ))
+        ) : (
+          <>
+            <AudioTrack label="UPLOAD AUDIO SAMPLES" />
+            <AudioTrack label="UPLOAD AUDIO SAMPLES" />
+          </>
+        )}
+      </div>
+
+      <div class="listen__ba">
+        <p class="kicker">Before / after</p>
+        <Slot
+          label="ADD BEFORE / AFTER EXAMPLES"
+          note="A raw take beside the finished mix is the clearest proof of the work. None supplied yet."
+        />
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FINISHED PROJECTS ────────────────────────────────── -->
+  <section class="section proj">
+    <div class="wrap">
+      <p class="kicker">Finished</p>
+      <h2 class="display sec__h">Projects</h2>
+      {/* board rule 05.1: this page is the pitch, the archive is the
+          evidence — link into the filter, never restate its content */}
+      <p class="sec__lede">
+        Project records live in the archive so they exist in exactly one place.
+        <a class="proj__link" href="/archive/audio-engineering">See audio engineering work &rarr;</a>
+      </p>
+
+      {projects.length > 0 ? (
+        <ul class="proj__grid">
+          {projects.map((p) => (
+            <li class="proj__card">
+              <h3 class="proj__t display">{p.title}</h3>
+              <p class="proj__r typewriter">{p.role}</p>
+              <p class="proj__s">{p.summary}</p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div class="proj__empty">
+          <Slot
+            label="ADD PORTFOLIO PROJECTS"
+            note="Project name, role, description, media and credits."
+            size="lg"
+          />
+          <Slot
+            label="ADD CLIENT CREDITS"
+            note="Who I've worked with, once confirmed."
+          />
+        </div>
+      )}
+    </div>
+  </section>
+
+  <!-- ─── TOOLS + TRAINING ─────────────────────────────────── -->
+  <section class="section kit">
+    <div class="wrap kit__grid">
+      <Paper rot={-1} tone="news" class="kit__tools">
+        <p class="kicker">What I work in</p>
+        <ul class="kit__list">
+          {studioTools.map((t) => (
+            <li>
+              <span class="kit__name typewriter">{t.name}</span>
+              <span class="kit__kind typewriter">{t.kind}</span>
+            </li>
+          ))}
+        </ul>
+        <p class="kit__gap typewriter">
+          Full room and outboard list: <span class="kit__tag">[ADD EQUIPMENT LIST]</span>
+        </p>
+      </Paper>
+
+      <Paper rot={1.1} tone="index" class="kit__train">
+        <p class="kicker">Trained</p>
+        <p class="kit__school display">{education.school}</p>
+        <p class="kit__cred typewriter">{education.credential}</p>
+        <ul class="kit__training typewriter">
+          {education.training.map((t) => <li>{t}</li>)}
+        </ul>
+      </Paper>
+    </div>
+  </section>
+
+  <!-- ─── BOOK ─────────────────────────────────────────────── -->
+  <BookBand
+    heading="Book studio time"
+    body="Tracking, mixing, editing, or a full production. Tell me what the project is and I'll tell you what it needs."
+    cta="Book Studio Time"
+    image="console-standing"
+  />
+</Base>
+
+<style>
+  .sec__h { font-size: var(--t-lg); margin-block: var(--s-2) var(--s-3); }
+  .sec__lede { color: var(--text-2); margin-bottom: var(--s-6); }
+
+  /* HERO */
+  .ae-hero {
+    position: relative;
+    overflow: hidden;
+    padding-block: var(--s-9);
+    display: grid;
+    align-items: center;
+    min-height: min(62svh, 34rem);
+  }
+  .ae-hero :global(.ae-hero__bg) { position: absolute; inset: 0; }
+  .ae-hero :global(.ae-hero__bg img) { width: 100%; height: 100%; object-fit: cover; }
+  .ae-hero__veil {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(75% 75% at 22% 50%, rgba(253, 249, 248, 0.9), transparent 74%),
+      linear-gradient(180deg, rgba(253, 249, 248, 0.6), rgba(253, 249, 248, 0.94));
+  }
+  .ae-hero__in { position: relative; }
+  .ae-hero__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-4); }
+  .ae-hero__h span { display: block; }
+  .ae-hero__lede { color: var(--text-2); max-width: 38rem; margin-bottom: var(--s-6); }
+  .ae-hero__cta { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+  /* SERVICES */
+  .svc { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-5); }
+  @media (min-width: 48rem) { .svc { grid-template-columns: 1fr 1fr; gap: var(--s-6); } }
+  .svc__i {
+    display: grid;
+    gap: var(--s-2);
+    align-content: start;
+    padding: var(--s-6);
+    background: var(--ground-1);
+    border: 1px solid var(--rule-1);
+    border-left: 3px solid var(--violet);
+  }
+  .svc__n { font-size: var(--t-xs); color: var(--pink-deep); letter-spacing: 0.2em; }
+  .svc__t { font-size: var(--t-md); }
+  .svc__b { color: var(--text-2); font-size: var(--t-sm); margin: 0; }
+  .svc__covers {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2);
+    font-size: var(--t-xs);
+  }
+  .svc__covers li {
+    padding: 0.25rem 0.6rem;
+    border: 1px solid var(--rule-1);
+    color: var(--text-2);
+  }
+
+  /* ROOM */
+  .room__grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-6); }
+  @media (min-width: 48rem) { .room__grid { grid-template-columns: repeat(2, 1fr); gap: var(--s-7); } }
+  @media (min-width: 72rem) {
+    .room__grid { grid-template-columns: repeat(3, 1fr); }
+    .room__grid li:nth-child(2) { margin-top: var(--s-7); }
+    .room__grid li:nth-child(4) { margin-top: calc(var(--s-5) * -1); }
+    .room__grid li:nth-child(6) { margin-top: var(--s-5); }
+  }
+
+  /* LISTEN */
+  .listen__grid { display: grid; gap: var(--s-5); }
+  @media (min-width: 48rem) { .listen__grid { grid-template-columns: 1fr 1fr; } }
+  .listen__ba { margin-top: var(--s-7); display: grid; gap: var(--s-3); }
+
+  /* PROJECTS */
+  .proj__link { color: var(--pink-deep); }
+  .proj__empty { display: grid; gap: var(--s-4); }
+  .proj__grid { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-5); }
+  @media (min-width: 48rem) { .proj__grid { grid-template-columns: repeat(2, 1fr); } }
+  .proj__card {
+    padding: var(--s-5);
+    background: var(--ground-1);
+    border: 1px solid var(--rule-1);
+  }
+  .proj__t { font-size: var(--t-md); }
+  .proj__r { font-size: var(--t-xs); color: var(--pink-deep); }
+  .proj__s { color: var(--text-2); font-size: var(--t-sm); }
+
+  /* KIT */
+  .kit__grid { display: grid; gap: var(--s-6); }
+  @media (min-width: 56rem) { .kit__grid { grid-template-columns: 1fr 1fr; gap: var(--s-8); align-items: start; } }
+  .kit__list { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: var(--s-2); }
+  .kit__list li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--s-4);
+    padding-bottom: var(--s-2);
+    border-bottom: 1px solid rgba(36, 31, 26, 0.16);
+  }
+  .kit__name { font-size: var(--t-sm); color: var(--paper-ink); }
+  .kit__kind { font-size: var(--t-xs); color: var(--paper-ink-soft); letter-spacing: 0.14em; }
+  .kit__gap { margin: var(--s-4) 0 0; font-size: var(--t-xs); color: var(--paper-ink-soft); }
+  .kit__tag { color: #8a5a00; font-weight: 700; }
+  .kit__school { font-size: var(--t-md); margin-block: var(--s-2) 2px; }
+  .kit__cred { font-size: var(--t-sm); color: var(--paper-ink-soft); }
+  .kit__training {
+    list-style: none;
+    margin: var(--s-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+    font-size: var(--t-sm);
+    color: var(--paper-ink);
+  }
+  .kit__training li::before { content: "— "; color: var(--paper-ink-soft); }
+
+  /* BAND */
+</style>

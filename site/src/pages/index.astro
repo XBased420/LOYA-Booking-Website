@@ -1,0 +1,517 @@
+---
+import Base from "../layouts/Base.astro";
+import Polaroid from "../components/Polaroid.astro";
+import Paper from "../components/Paper.astro";
+import Tape from "../components/Tape.astro";
+import BookBand from "../components/BookBand.astro";
+import Photo from "../components/Photo.astro";
+import { site, education, disciplines, tools } from "../data/site";
+
+const wall = [
+  { href: "/music",          label: "My Music",  img: "piano-mic",           alt: "A microphone set over piano strings.",               rot: -3 },
+  { href: "/archive",        label: "My Work",   img: "console-detail",      alt: "Close-up of a mixing console channel strip.",        rot: 2.4 },
+  { href: "/audio-engineering", label: "The Studio", img: "console-standing", alt: "Liz Loya standing at a large mixing console.", rot: -1.6 },
+  { href: "/about",          label: "About Me",  img: "headphones-portrait", alt: "Liz Loya wearing headphones in the studio.",   rot: 3 },
+  { href: "/dj-live-events", label: "DJ + Live", img: "dj-event",            alt: "DJ booth lit purple at an event.",                   rot: -2.2 },
+  { href: "/contact",        label: "Contact",   img: "radio-desk",          alt: "A broadcast desk under a red studio sign.",          rot: 1.8 },
+];
+---
+
+<Base>
+  <section class="hero grain">
+    <div class="wrap hero__grid">
+      <div class="hero__id">
+        <h1 class="display hero__name">{site.name}</h1>
+        <p class="typewriter hero__roles">{site.rolesLine}</p>
+      </div>
+
+      <figure class="reel">
+        <Tape x="16%" y="-13px" rot={-9} w="7.5rem" />
+        <Tape x="78%" y="-9px" rot={7} w="5.5rem" tone="washi" />
+        {/* A real still is the BASE layer and the video sits on top,
+            revealed only once it is genuinely playing. The reel fades in
+            from black, so a <video> that loads but never plays paints a
+            black frame 0 over everything — which is what a paused,
+            autoplay-blocked or reduced-motion visitor was seeing. This
+            way there is always a picture. */}
+        <span class="reel__stage">
+          <img
+            class="reel__still"
+            src="/media/poster/hero-loop.jpg"
+            alt="Liz at the console, mid-session."
+            width="1280" height="720" decoding="async"
+            loading="eager" fetchpriority="high"
+          />
+          <video
+            class="reel__v"
+            data-reel
+            autoplay
+            muted
+            loop
+            playsinline
+            {/* metadata, not auto: the reel is decorative and ~2.7MB. `auto`
+                pulled the whole file on every visit, ahead of nothing that
+                needed it, while the still underneath already covers the wait. */}
+            preload="metadata"
+            aria-hidden="true"
+            tabindex="-1"
+          >
+            {/* The -trim files are the reel with its 1.6s fade-up from
+                black cut off, so the card never shows a black frame —
+                not on first paint and not on every loop — and at 720p,
+                which is plenty for a card this size and a third of the
+                weight. H.264 first (most reliably hardware-decoded),
+                VP9 behind it for builds without proprietary codecs. */}
+            <source src="/media/video/hero-loop-trim.mp4" type="video/mp4" />
+            <source src="/media/video/hero-loop-trim.webm" type="video/webm" />
+          </video>
+        </span>
+        <figcaption class="hand reel__cap">in the room</figcaption>
+      </figure>
+
+      <Paper rot={-1.4} class="hero__note" tone="cream">
+        <p class="hero__intro">{site.intro}</p>
+        <p class="hand hero__sign">&mdash; Liz</p>
+      </Paper>
+
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="/book">Book a Session</a>
+        <a class="btn btn--ghost" href="/archive">See the work</a>
+      </div>
+    </div>
+
+    <p class="hero__cue typewriter" aria-hidden="true">scroll &darr;</p>
+  </section>
+
+  <section class="section creds">
+    <div class="wrap creds__grid">
+      <Paper rot={1.2} tone="index" class="creds__card">
+        <p class="kicker">Trained</p>
+        <p class="creds__big display">{education.school}</p>
+        <p class="creds__sub typewriter">{education.credential}</p>
+      </Paper>
+
+      <div class="creds__do">
+        <p class="kicker">What I do</p>
+        <ul class="do__list">
+          {disciplines.map((d) => (
+            <li>
+              <span class="do__t display">{d.title}</span>
+              <span class="do__n typewriter">{d.note}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <Paper rot={-2} tone="news" class="creds__tools">
+        <p class="kicker">Tools</p>
+        <ul class="tools__list typewriter">
+          {tools.map((t) => <li>{t}</li>)}
+        </ul>
+      </Paper>
+    </div>
+  </section>
+
+  <section class="section wall-sec">
+    <div class="wrap">
+      <p class="kicker">Liz&rsquo;s creative world</p>
+      <h2 class="display wall__h">The Wall</h2>
+      <p class="wall__lede">Everything is pinned up here. Pick anything.</p>
+
+      <ul class="wall">
+        {wall.map((w, i) => (
+          <li class="wall__i" style={`--i:${i};`}>
+            <a class="wall__link" href={w.href}>
+              <span class="peek" style={`--rot:${w.rot}deg;`}>
+                <Polaroid
+                  name={w.img}
+                  alt={w.alt}
+                  rot={0}
+                  caption={w.label}
+                  lift={false}
+                  sizes="(max-width: 48rem) 44vw, (max-width: 72rem) 30vw, 22vw"
+                >
+                  {/* All three layers live INSIDE the photo window, so the
+                      crease is measured against the photograph. Anchored to
+                      the whole card they landed 43px below the image and 13px
+                      right of it, slicing the white frame and the caption. */}
+                  <Fragment slot="on-photo">
+                    <span class="peek__behind" aria-hidden="true">
+                      <span class="peek__go">&rarr;</span>
+                    </span>
+                    <span class="peek__cast" aria-hidden="true"></span>
+                    <span class="peek__fold" aria-hidden="true"></span>
+                  </Fragment>
+                </Polaroid>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  {/* The closing band is one shared component so it is identical at the
+      bottom of every page. It used to be pasted inline here with its own
+      veil opacity and its own padding, which is how the three copies
+      drifted apart. */}
+  <BookBand heading="Let’s make something" image="grad-console-b" />
+</Base>
+
+
+<style>
+  /* HERO */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    min-height: min(84svh, 46rem);
+    display: grid;
+    align-items: center;
+    padding-block: var(--s-8) var(--s-9);
+    /* A wash of blush so the hero reads as its own surface without needing
+       a dark block to separate it.
+
+       Every layer here is translucent ON PURPOSE. The SoundField canvas
+       sits behind the whole page at z-index -1, so an opaque wash does not
+       tint it — it hides it, and the spectrum gets chopped off in a hard
+       horizontal line at whatever y the hero happens to end. Because this
+       wash is within a shade or two of the page ground, that line reads as
+       a rendering fault rather than as a change of surface.
+
+       Fading the wash to fully transparent before the hero's bottom edge
+       lets the columns rise through it instead of stopping under it. */
+    background:
+      radial-gradient(90% 70% at 84% 12%,
+        color-mix(in srgb, var(--ground-2) 72%, transparent), transparent 62%),
+      linear-gradient(168deg,
+        color-mix(in srgb, var(--ground-1) 92%, transparent) 0%,
+        color-mix(in srgb, var(--ground-1) 46%, transparent) 40%,
+        transparent 78%);
+  }
+
+  /* THE REEL — taped to the board rather than washed behind it. The
+     footage is dark-graded; framed, that darkness is a deliberate
+     object on a light wall instead of a hole in the page. */
+  .reel {
+    position: relative;
+    margin: 0;
+    max-width: 32rem;
+    background: var(--paper-100);
+    padding: 0.7rem 0.7rem 2.6rem;
+    box-shadow: var(--lift-3);
+    transform: rotate(-2.2deg);
+    transition: transform var(--dur-2) var(--ease-paper),
+                box-shadow var(--dur-2) var(--ease-paper);
+  }
+  .reel:hover { transform: rotate(-0.7deg) translateY(-6px); }
+  .reel__stage {
+    display: block;
+    position: relative;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--paper-300);
+  }
+  .reel__still {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .reel__v {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity var(--dur-3) var(--ease-out);
+  }
+  /* set by the layout script on the video's own `playing` event */
+  .reel__v[data-playing] { opacity: 1; }
+  .reel__cap {
+    position: absolute;
+    left: 1.1rem;
+    bottom: 0.35rem;
+    margin: 0;
+    color: var(--paper-ink-soft);
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+  .hero__grid {
+    position: relative;
+    display: grid;
+    gap: var(--s-6);
+  }
+  /* grid children default to min-width:auto, which lets a long
+     unbreakable headline push the whole column past the viewport */
+  .hero__grid > * { min-width: 0; }
+
+  .hero__name {
+    font-size: var(--t-3xl);
+    overflow-wrap: break-word;
+    color: var(--text-1);
+  }
+
+  .hero__roles {
+    margin: var(--s-4) 0 0;
+    font-size: var(--t-xs);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    overflow-wrap: break-word;
+  }
+  @media (min-width: 40rem) {
+    .hero__roles { font-size: var(--t-sm); letter-spacing: 0.26em; }
+  }
+  /* passed to <Paper>, so it renders under Paper's scope — reach it
+     through a locally-scoped ancestor */
+  .hero__grid :global(.hero__note) { max-width: 30rem; }
+  .hero__intro {
+    font-size: var(--t-md);
+    line-height: 1.45;
+    margin-bottom: var(--s-3);
+  }
+  .hero__sign { margin: 0; color: var(--paper-ink-soft); }
+  .hero__cta { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .hero__cue {
+    position: absolute;
+    bottom: var(--s-5);
+    left: 50%;
+    translate: -50% 0;
+    font-size: var(--t-xs);
+    color: var(--text-3);
+    letter-spacing: 0.3em;
+  }
+  @media (min-width: 62rem) {
+    .hero__grid {
+      grid-template-columns: 1.05fr 1fr;
+      align-items: end;
+      gap: var(--s-6) var(--s-8);
+    }
+    /* left column: the name, then the buttons under it.
+       right column: the reel, then the note under it. */
+    .hero__id  { grid-column: 1; grid-row: 1; align-self: end; }
+    .hero__cta { grid-column: 1; grid-row: 2; align-self: start; }
+    .reel      { grid-column: 2; grid-row: 1; }
+    .hero__grid :global(.hero__note) { grid-column: 2; grid-row: 2; }
+  }
+
+  /* CREDIBILITY */
+  .creds__grid { display: grid; gap: var(--s-6); }
+  @media (min-width: 62rem) {
+    .creds__grid {
+      grid-template-columns: 0.9fr 1.4fr 0.8fr;
+      align-items: start;
+    }
+  }
+  .creds__big { font-size: var(--t-lg); margin-block: var(--s-2); }
+  .creds__sub { font-size: var(--t-sm); color: var(--paper-ink-soft); }
+  .do__list {
+    list-style: none;
+    margin: var(--s-4) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-3);
+  }
+  .do__list li {
+    display: grid;
+    gap: 2px;
+    padding-bottom: var(--s-3);
+    border-bottom: 1px solid var(--rule-1);
+  }
+  .do__t { font-size: var(--t-md); }
+  .do__n { font-size: var(--t-xs); color: var(--text-2); }
+  @media (min-width: 40rem) {
+    .do__list { grid-template-columns: 1fr 1fr; gap: var(--s-3) var(--s-6); }
+  }
+  .tools__list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+    font-size: var(--t-sm);
+    color: var(--paper-ink);
+  }
+
+  /* WALL */
+  .wall__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-3); }
+  .wall__lede { color: var(--text-2); margin-bottom: var(--s-7); }
+  .wall {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--s-6) var(--s-5);
+  }
+  @media (min-width: 48rem) {
+    .wall { grid-template-columns: repeat(3, 1fr); gap: var(--s-8) var(--s-6); }
+  }
+  @media (min-width: 72rem) {
+    /* stagger so it reads as a wall, not a product grid */
+    .wall { grid-template-columns: repeat(6, 1fr); }
+    .wall__i { grid-column: span 2; }
+    .wall__i:nth-child(1) { margin-top: 0; }
+    .wall__i:nth-child(2) { margin-top: var(--s-8); }
+    .wall__i:nth-child(3) { margin-top: var(--s-3); }
+    .wall__i:nth-child(4) { grid-column: 2 / span 2; margin-top: calc(var(--s-6) * -1); }
+    .wall__i:nth-child(5) { margin-top: var(--s-5); }
+    .wall__i:nth-child(6) { margin-top: calc(var(--s-7) * -1); }
+  }
+  .wall__link { display: block; text-decoration: none; }
+
+  /* ── Peeling the corner ────────────────────────────────────────
+     The photo does not move. Its bottom-right corner is clipped away
+     and a folded flap is drawn over the cut, so the notch itself is
+     what reveals the wall underneath.
+
+     Both clip-path polygons declare the SAME five points — a shape can
+     only transition between polygons with matching point counts, so the
+     resting state carries a zero-width cut rather than being a rect. */
+  .peek {
+    display: block;
+    position: relative;
+    /* The card's tilt lives HERE, not on the Polaroid. With it on the
+       photo alone, the notch and the flap were positioned against an
+       unrotated box — so the cut sliced across the photo at the wrong
+       angle and the panel behind leaked out along the edges. */
+    transform: rotate(var(--rot, 0deg));
+    transition: transform var(--dur-2) var(--ease-paper);
+    --cut: 0px;
+    --cut-open: 3.4rem;
+  }
+  @media (min-width: 48rem) { .peek { --cut-open: 4.4rem; } }
+  @media (min-width: 72rem) { .peek { --cut-open: 5.6rem; } }
+
+  .peek__behind {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    display: grid;
+    align-content: end;
+    justify-items: end;
+    /* the revealed triangle is small — only a hint fits, and the
+       destination is already named in the Polaroid caption below */
+    padding: 0 0.55rem 0.4rem 0;
+    background:
+      linear-gradient(300deg, rgba(111, 79, 242, 0.22), rgba(212, 72, 143, 0.12)),
+      var(--ground-2);
+    opacity: 0;
+    transition: opacity var(--dur-2) var(--ease-paper);
+  }
+  .peek__go {
+    font-size: 1.05rem;
+    line-height: 1;
+    color: var(--pink-deep);
+    transform: translate(2px, 2px);
+  }
+
+  /* The cut is applied to the PHOTOGRAPH, not the card. Anchored to the
+     card it also sliced the white frame and the caption strip, because the
+     photo window stops ~43px above the card's bottom edge and ~13px inside
+     its right edge — so the diagonal appeared beside the image instead of
+     in it. Photo.astro renders either a <picture> or a placeholder div;
+     both take the cut so a missing image peels the same way.
+
+     The cut is a LENGTH, never a percentage. The window is 4:5, so 56% of
+     its width and 56% of its height are different distances — the crease
+     came out at ~51deg while the flap was rotated about a hard 45deg axis,
+     and the two could never line up. Equal lengths make it a true 45deg.
+
+     Both polygons declare the SAME five points: a shape only transitions
+     between polygons with matching point counts, so the resting state
+     carries a zero-width cut rather than being a plain rect. */
+  .peek :global(.polaroid__win > picture),
+  .peek :global(.polaroid__win > .photo-missing) {
+    position: relative;
+    z-index: 1;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--cut)),
+      calc(100% - var(--cut)) 100%,
+      0 100%
+    );
+    transition: clip-path var(--dur-3) var(--ease-paper);
+    will-change: clip-path;
+  }
+
+  /* The shadow the lifted corner throws back onto the photo. Separate
+     element because a filter on the flap rotates along with it. */
+  .peek__cast {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 2;
+    /* square, so its diagonal matches the 45deg crease exactly */
+    width: var(--cut);
+    height: var(--cut);
+    pointer-events: none;
+    clip-path: polygon(100% 0, 0 0, 0 100%);
+    background: radial-gradient(
+      150% 150% at 100% 100%,
+      rgba(0, 0, 0, 0.78) 0%,
+      rgba(0, 0, 0, 0.4) 48%,
+      rgba(0, 0, 0, 0) 76%
+    );
+    transition: width var(--dur-3) var(--ease-paper),
+                height var(--dur-3) var(--ease-paper);
+  }
+
+  /* The flap, clipped to the corner it came from and rotated about the
+     crease. A fold IS a mirror, which is exactly 180deg — so the lift is
+     a small deviation from 180, not a large one. Rotating far from it
+     (138deg) skewed the triangle into a dart that overhung the card. */
+  .peek__fold {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    /* square, so its diagonal matches the 45deg crease exactly */
+    width: var(--cut);
+    height: var(--cut);
+    pointer-events: none;
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+    transform-origin: 50% 50%;
+    transform: rotate3d(-1, 1, 0, var(--fold, 180deg));
+    /* Authored at 135deg, NOT 315: the fold mirrors the element across
+       the crease, which flips the gradient in screen space. Authoring it
+       the intuitive way put the dark end at the crease and the flap
+       rendered flat. This way light catches the bend and the tip falls
+       away into shadow. */
+    background: linear-gradient(
+      135deg,
+      #fffefa 0%,
+      #fbf6ea 10%,
+      #d9cdb4 46%,
+      #ab9c80 78%,
+      #8b7d64 100%
+    );
+    filter: drop-shadow(-7px -7px 12px rgba(0, 0, 0, 0.7));
+    transition: width var(--dur-3) var(--ease-paper),
+                height var(--dur-3) var(--ease-paper),
+                transform var(--dur-3) var(--ease-paper);
+  }
+
+  .wall__link:hover .peek,
+  .wall__link:focus-visible .peek { --cut: var(--cut-open); }
+
+  .wall__link:hover .peek__fold,
+  .wall__link:focus-visible .peek__fold { --fold: 154deg; }
+
+  .wall__link:hover .peek__behind,
+  .wall__link:focus-visible .peek__behind { opacity: 1; }
+
+  /* Zeroing the duration is not enough — the corner would still snap
+     open. Leave the photo whole instead. */
+  @media (prefers-reduced-motion: reduce) {
+    .wall__link:hover .peek,
+    .wall__link:focus-visible .peek { --cut: 0px; }
+    .wall__link:hover .peek__fold,
+    .wall__link:focus-visible .peek__fold { --fold: 180deg; }
+    .peek__behind { display: none; }
+  }
+
+  /* BAND */
+</style>

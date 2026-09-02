@@ -1,0 +1,179 @@
+---
+import Base from "../layouts/Base.astro";
+import Polaroid from "../components/Polaroid.astro";
+import Paper from "../components/Paper.astro";
+import Slot from "../components/Slot.astro";
+import BookBand from "../components/BookBand.astro";
+import { mediaFor } from "../data/work";
+import { experience } from "../data/site";
+
+/** CoHost Entertainment — DJ / Host — is a verified role from the
+ *  source-of-truth board. No event count, client list, or genre claim is
+ *  made anywhere on this page, because none was supplied. */
+const cohost = experience.find((e) => e.slug === "cohost")!;
+const media = mediaFor("dj-events");
+const live = mediaFor("live-sound");
+---
+
+<Base
+  title="DJ + Live Events"
+  description="DJ and live event work with Liz Loya — sets, receptions and live sound in Dallas, including her work with CoHost Entertainment."
+  ogImage="/media/img/dj-event-1200.jpg"
+>
+  <section class="dj-hero grain">
+    <video
+      class="dj-hero__reel" data-reel autoplay muted loop playsinline
+      poster="/media/img/dj-event-1200.jpg" aria-hidden="true" tabindex="-1"
+    >
+      <source src="/media/video/dj-loop.mp4" type="video/mp4" />
+    </video>
+    <div class="dj-hero__veil"></div>
+
+    <div class="wrap dj-hero__in">
+      <p class="kicker">{cohost.org}</p>
+      <h1 class="display dj-hero__h"><span>DJ +</span> <span>Live Events</span></h1>
+      <p class="dj-hero__lede">
+        Reading a room and holding it &mdash; receptions, parties and live
+        rooms, plus the sound and AV that make them work.
+      </p>
+      <a class="btn btn--primary" href="/book">Book for an event</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap two">
+      <div>
+        <p class="kicker">The role</p>
+        <h2 class="display sec__h">{cohost.org}</h2>
+        <p class="sec__role typewriter">{cohost.role}</p>
+        <p class="sec__lede">
+          This is the role as supplied. What each night actually involved has
+          not been written down yet.
+        </p>
+        {cohost.detail.length > 0
+          ? <ul class="role__l typewriter">{cohost.detail.map((d) => <li>{d}</li>)}</ul>
+          : <Slot
+          label="ADD ROLE RESPONSIBILITIES"
+          note={`Responsibilities and event types for ${cohost.org}.`}
+        />}
+      </div>
+
+      <Paper rot={1.3} tone="index" class="kinds">
+        <p class="kicker">What I'm set up for</p>
+        <ul class="kinds__l typewriter">
+          <li>DJing</li>
+          <li>Hosting</li>
+          <li>Live sound</li>
+          <li>Event production</li>
+          <li>AV technology</li>
+          <li>Music curation</li>
+        </ul>
+        <p class="kinds__n typewriter">
+          Drawn from my stated skills. A definitive bookable list is
+          <span class="kinds__tag">[ADD SERVICES LIST]</span>
+        </p>
+      </Paper>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <p class="kicker">On the night</p>
+      <h2 class="display sec__h">Event photography</h2>
+      <ul class="grid">
+        {media.map((m, i) => (
+          <li>
+            <Polaroid
+              name={m.img} alt={m.alt} caption={m.cap} rot={((i % 4) - 1.5) * 1.4}
+              sizes="(max-width: 48rem) 84vw, (max-width: 72rem) 42vw, 30vw"
+            />
+          </li>
+        ))}
+      </ul>
+      <a class="more" href="/archive/dj-events">Open the DJ / Events archive &rarr;</a>
+    </div>
+  </section>
+
+  {live.length > 0 && (
+    <section class="section">
+      <div class="wrap">
+        <p class="kicker">Front of house</p>
+        <h2 class="display sec__h">Live sound</h2>
+        <ul class="grid grid--wide">
+          {live.map((m) => (
+            <li>
+              <Polaroid
+                name={m.img} alt={m.alt} caption={m.cap} rot={-1.6}
+                sizes="(max-width: 48rem) 84vw, 44vw"
+              />
+            </li>
+          ))}
+        </ul>
+        <a class="more" href="/archive/live-sound">Open the Live Sound archive &rarr;</a>
+      </div>
+    </section>
+  )}
+
+  <section class="section">
+    <div class="wrap">
+      <p class="kicker">From clients</p>
+      <h2 class="display sec__h">What people said</h2>
+      <Slot
+        label="ADD TESTIMONIALS"
+        note="No testimonials have been supplied. Nothing has been written on anyone's behalf."
+        size="lg"
+      />
+    </div>
+  </section>
+
+  <BookBand
+    heading="Booking an event?"
+    body="Tell me the date, the room, and roughly how many people."
+    cta="Book for an event"
+    image="dj-event"
+  />
+</Base>
+
+
+<style>
+  .sec__h { font-size: var(--t-lg); margin-block: var(--s-2) var(--s-2); }
+  .sec__role { font-size: var(--t-xs); color: var(--pink-deep); letter-spacing: .12em; margin-bottom: var(--s-3); }
+  .sec__lede { color: var(--text-2); margin-bottom: var(--s-5); max-width: 40rem; }
+
+  .dj-hero {
+    position: relative; overflow: hidden; padding-block: var(--s-9);
+    min-height: min(66svh, 38rem); display: grid; align-items: center;
+  }
+  .dj-hero__reel {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; opacity: .42;
+  }
+  .dj-hero__veil {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(72% 72% at 24% 50%, rgba(251,238,242,.90), transparent 74%),
+      linear-gradient(180deg, rgba(253,249,248,.62), rgba(253,249,248,.94));
+  }
+  .dj-hero__in { position: relative; }
+  .dj-hero__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-4); }
+  .dj-hero__h span { display: block; }
+  .dj-hero__lede { color: var(--text-2); max-width: 36rem; margin-bottom: var(--s-6); }
+
+  .two { display: grid; gap: var(--s-7); align-items: start; }
+  @media (min-width: 56rem) { .two { grid-template-columns: 1.15fr .85fr; gap: var(--s-8); } }
+  .kinds__l { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: var(--s-2); font-size: var(--t-sm); color: var(--paper-ink); }
+  .kinds__l li::before { content: "— "; color: var(--paper-ink-soft); }
+  .kinds__n { margin: var(--s-4) 0 0; font-size: var(--t-xs); color: var(--paper-ink-soft); }
+  .kinds__tag { color: #8a5a00; font-weight: 700; }
+
+  .grid { list-style: none; margin: 0 0 var(--s-5); padding: 0; display: grid; gap: var(--s-6); grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 48rem) { .grid { grid-template-columns: repeat(3, 1fr); gap: var(--s-7); } }
+  .grid--wide { grid-template-columns: 1fr; }
+  @media (min-width: 48rem) { .grid--wide { grid-template-columns: repeat(2, 1fr); } }
+  .more {
+    font-family: var(--font-type); font-size: var(--t-xs);
+    letter-spacing: .14em; text-transform: uppercase; color: var(--pink-deep);
+    text-decoration: none; display: inline-flex; align-items: center; min-height: 44px;
+  }
+  .more:hover { text-decoration: underline; }
+</style>

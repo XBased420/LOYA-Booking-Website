@@ -1,0 +1,40 @@
+---
+import Photo from "./Photo.astro";
+import type { Project } from "../data/work";
+
+/** Renders only the fields a project actually has (spec §14: "Only show
+ *  fields that actually contain information"). An absent field produces
+ *  no empty heading, no dash, no placeholder row. */
+interface Props { project: Project; }
+const { project: p } = Astro.props;
+---
+<article class="pc">
+  {p.image && (
+    <div class="pc__media">
+      <Photo name={p.image} alt="" sizes="(max-width: 48rem) 88vw, 40vw" />
+    </div>
+  )}
+  <div class="pc__body">
+    <h3 class="pc__t display">{p.title}</h3>
+    {p.role && <p class="pc__r typewriter">{p.role}</p>}
+    {p.summary && <p class="pc__s">{p.summary}</p>}
+    {p.credits && p.credits.length > 0 && (
+      <ul class="pc__credits typewriter">
+        {p.credits.map((c) => <li>{c}</li>)}
+      </ul>
+    )}
+  </div>
+</article>
+
+<style>
+  .pc { background: var(--ground-1); border: 1px solid var(--rule-1); }
+  .pc__media :global(img) { aspect-ratio: 4 / 3; object-fit: cover; }
+  .pc__body { padding: var(--s-5); display: grid; gap: var(--s-2); }
+  .pc__t { font-size: var(--t-md); }
+  .pc__r { font-size: var(--t-xs); color: var(--pink-deep); letter-spacing: .1em; }
+  .pc__s { color: var(--text-2); font-size: var(--t-sm); margin: 0; }
+  .pc__credits {
+    list-style: none; margin: var(--s-2) 0 0; padding: 0;
+    display: grid; gap: 2px; font-size: var(--t-xs); color: var(--text-3);
+  }
+</style>

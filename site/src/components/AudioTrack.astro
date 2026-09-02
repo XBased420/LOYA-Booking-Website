@@ -1,0 +1,52 @@
+---
+import Slot from "./Slot.astro";
+import type { Track } from "../data/work";
+
+/** An audio item on the wall.
+ *
+ *  Uses the NATIVE <audio controls> element deliberately: it is keyboard
+ *  operable, screen-reader labelled, and respects the OS media keys with
+ *  no JavaScript. A custom-drawn player would look more on-brand and be
+ *  worse for everyone using it.
+ *
+ *  Never autoplays — playback is always user-initiated. */
+interface Props { track?: Track; label?: string; rot?: number; }
+const { track, label = "UPLOAD AUDIO SAMPLES", rot = -0.8 } = Astro.props;
+---
+
+{track ? (
+  <figure class="tr" style={`--rot:${rot}deg;`}>
+    <figcaption class="tr__head">
+      <span class="tr__title display">{track.title}</span>
+      <span class="tr__role typewriter">{track.role}</span>
+    </figcaption>
+    <audio
+      class="tr__audio"
+      controls
+      preload="none"
+      src={track.src}
+      aria-label={`${track.title} — ${track.role}`}
+    ></audio>
+    {track.note && <p class="tr__note typewriter">{track.note}</p>}
+  </figure>
+) : (
+  <Slot label={label} note="Audio has not been supplied yet." size="sm" />
+)}
+
+<style>
+  .tr {
+    margin: 0;
+    padding: var(--s-4);
+    background: var(--paper-100);
+    color: var(--paper-ink);
+    transform: rotate(var(--rot));
+    box-shadow: var(--lift-1);
+    display: grid;
+    gap: var(--s-3);
+  }
+  .tr__head { display: grid; gap: 2px; }
+  .tr__title { font-size: var(--t-md); }
+  .tr__role { font-size: var(--t-xs); color: var(--paper-ink-soft); letter-spacing: 0.1em; }
+  .tr__audio { width: 100%; }
+  .tr__note { margin: 0; font-size: var(--t-xs); color: var(--paper-ink-soft); }
+</style>

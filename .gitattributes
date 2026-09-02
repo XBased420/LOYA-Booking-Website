@@ -1,0 +1,15 @@
+# Normalise line endings. Text files are stored LF in the repo;
+# Git converts on checkout for whatever platform you are on.
+* text=auto eol=lf
+
+# Batch files must keep CRLF or cmd.exe can mis-parse them.
+*.bat text eol=crlf
+
+# Binary — never touch these.
+*.png binary
+*.jpg binary
+*.webp binary
+*.avif binary
+*.mp4 binary
+*.webm binary
+*.mp3 binary

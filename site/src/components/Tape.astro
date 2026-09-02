@@ -1,0 +1,31 @@
+---
+/** A strip of tape holding paper to the wall. Purely decorative —
+ *  hidden from assistive tech. */
+interface Props { x?: string; y?: string; rot?: number; w?: string; tone?: "matte" | "washi"; }
+const { x = "50%", y = "-14px", rot = -6, w = "8.5rem", tone = "matte" } = Astro.props;
+---
+<span class="tape" data-tone={tone} aria-hidden="true"
+  style={`--x:${x}; --y:${y}; --rot:${rot}deg; --w:${w};`}></span>
+
+<style>
+  .tape {
+    position: absolute; left: var(--x); top: var(--y);
+    width: var(--w); height: 2.1rem;
+    transform: translateX(-50%) rotate(var(--rot));
+    box-shadow: 0 1px 4px rgba(70,30,55,.20);
+    /* torn/serrated ends */
+    clip-path: polygon(
+      0 12%, 4% 0, 8% 14%, 12% 2%, 100% 6%,
+      98% 92%, 94% 100%, 90% 88%, 86% 99%, 0 94%
+    );
+  }
+  .tape[data-tone="matte"] {
+    background: linear-gradient(102deg,
+      rgba(226,205,186,.78), rgba(203,177,158,.62) 60%, rgba(226,205,186,.72));
+    backdrop-filter: saturate(.8);
+  }
+  .tape[data-tone="washi"] {
+    background: linear-gradient(102deg,
+      rgba(212,72,143,.46), rgba(111,79,242,.34));
+  }
+</style>

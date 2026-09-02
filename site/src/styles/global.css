@@ -1,0 +1,161 @@
+@import "@fontsource/anton/400.css";
+@import "@fontsource/archivo/400.css";
+@import "@fontsource/archivo/700.css";
+@import "@fontsource/courier-prime/400.css";
+@import "@fontsource/courier-prime/700.css";
+@import "@fontsource/caveat/400.css";
+@import "./tokens.css";
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+/* The ground lives on <html> so that <body> can stay transparent and the
+   SoundField canvas can sit at z-index -1 — above the page background,
+   below every piece of content, without any element needing a z-index. */
+html { background: var(--ground-0); }
+
+body {
+  margin: 0;
+  background: transparent;
+  color: var(--text-1);
+  font-family: var(--font-sans);
+  font-size: var(--t-base);
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { margin: 0; line-height: 1.02; font-weight: 400; }
+p { margin: 0 0 1em; max-width: var(--measure); }
+img, video { display: block; max-width: 100%; height: auto; }
+
+a { color: inherit; }
+
+/* ── Focus. Experimental visuals never remove the focus ring. ───── */
+:focus-visible {
+  outline: 3px solid var(--violet-deep);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.skip-link {
+  position: absolute; left: -9999px; top: 0; z-index: 999;
+  background: var(--ink-900); color: var(--on-ink);
+  padding: var(--s-3) var(--s-5); font-family: var(--font-sans);
+  font-weight: 700;
+}
+.skip-link:focus { left: var(--s-4); top: var(--s-4); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+}
+
+/* ── Type roles ─────────────────────────────────────────────────── */
+.display {
+  font-family: var(--font-display);
+  letter-spacing: -0.015em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+.typewriter {
+  font-family: var(--font-type);
+  letter-spacing: 0.02em;
+}
+.hand {
+  font-family: var(--font-hand);
+  font-size: 1.35em;
+  line-height: 1.25;
+}
+.kicker {
+  font-family: var(--font-type);
+  font-size: var(--t-xs);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+/* ── Texture. One shared grain layer, panned by CSS only — no JS,
+      no per-frame filter work. ──────────────────────────────────── */
+.grain::after {
+  content: "";
+  position: absolute; inset: -50%;
+  background-image: var(--grain-url);
+  opacity: 0.05;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  animation: grain-drift 7s steps(6) infinite;
+}
+@keyframes grain-drift {
+  0%   { transform: translate(0,0); }
+  20%  { transform: translate(-3%,2%); }
+  40%  { transform: translate(2%,-3%); }
+  60%  { transform: translate(-2%,-2%); }
+  80%  { transform: translate(3%,1%); }
+  100% { transform: translate(0,0); }
+}
+
+/* ── Scroll reveal ───────────────────────────────────────────────
+      Blocks fade and drift as they cross the top and bottom edges of the
+      screen, in whichever direction you are going: scroll down and what
+      you are leaving fades up and out while what is arriving rises in;
+      scroll up and it runs the other way.
+
+      Only JavaScript ever sets data-rev, so with scripting off nothing is
+      hidden — every block simply renders. Reduced motion is handled at the
+      bottom of this block rather than by not tagging, so a visitor who
+      changes the setting mid-session is never left with hidden content. */
+[data-rev] {
+  transition: opacity var(--dur-3) var(--ease-out),
+              transform var(--dur-3) var(--ease-out);
+}
+[data-rev="in"]   { opacity: 1; }
+[data-rev="down"] { opacity: 0; }
+[data-rev="up"]   { opacity: 0; }
+
+/* Paper, polaroids and the primary button are all rotated a degree or two
+   — that tilt is the whole look. Anything that already carries its own
+   transform is marked data-rev-still and simply never gets a transform
+   declared here, so it fades in place and keeps its rotation. Declaring
+   `transform: none` on it, even to "reset" it, would flatten the tilt. */
+[data-rev="in"]:not([data-rev-still])   { transform: none; }
+[data-rev="down"]:not([data-rev-still]) { transform: translateY(26px); }
+[data-rev="up"]:not([data-rev-still])   { transform: translateY(-26px); }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-rev] { opacity: 1 !important; transition: none; }
+  [data-rev="down"]:not([data-rev-still]),
+  [data-rev="up"]:not([data-rev-still]) { transform: none; }
+}
+
+/* ── Layout helpers ─────────────────────────────────────────────── */
+.wrap {
+  width: min(100% - 2rem, var(--page-max));
+  margin-inline: auto;
+}
+@media (min-width: 60rem) { .wrap { width: min(100% - 5rem, var(--page-max)); } }
+
+.section { padding-block: var(--s-9); position: relative; }
+
+/* ── Buttons ────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; gap: var(--s-3);
+  min-height: 48px; padding: var(--s-3) var(--s-6);
+  font-family: var(--font-sans); font-weight: 700;
+  font-size: var(--t-sm); letter-spacing: 0.14em; text-transform: uppercase;
+  text-decoration: none; cursor: pointer; border: 0;
+  transition: transform var(--dur-1) var(--ease-paper),
+              box-shadow var(--dur-1) var(--ease-paper);
+}
+.btn--primary {
+  background: var(--pink-deep); color: #fff;
+  box-shadow: var(--lift-2);
+  transform: rotate(-0.8deg);
+}
+.btn--primary:hover { transform: rotate(-0.8deg) translateY(-3px); box-shadow: var(--lift-2); }
+.btn--ghost {
+  background: transparent; color: var(--text-1);
+  border: 1px solid var(--rule-3);
+}
+.btn--ghost:hover { border-color: var(--violet-deep); background: rgba(111,79,242,.08); }

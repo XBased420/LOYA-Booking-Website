@@ -1,0 +1,224 @@
+---
+import Base from "../layouts/Base.astro";
+import BookBand from "../components/BookBand.astro";
+import Photo from "../components/Photo.astro";
+import Paper from "../components/Paper.astro";
+import Tape from "../components/Tape.astro";
+import Slot from "../components/Slot.astro";
+import { experience } from "../data/site";
+
+/** Timeline cards are UI, not paper, so they are NOT tilted. Rotating a wide
+ *  card drops its far corner, and rotated text loses subpixel antialiasing and
+ *  colour-fringes. The scrapbook feel on this page comes from the photos inside
+ *  each reveal and the paper note at the end. */
+
+/** Alt text per entry image. Kept beside the render rather than in the data
+ *  layer, since it describes this page's use of the photo. */
+const alts: Record<string, string> = {
+  "mediatech-building": "The MediaTech Institute building exterior.",
+  "dj-event": "A DJ booth lit purple at an event.",
+  "radio-desk": "A broadcast desk beneath a red studio sign.",
+  "av-cases": "Road cases and speaker stacks packed for an event.",
+  "console-standing": "Liz Loya standing at a large mixing console.",
+};
+---
+
+<Base
+  title="Experience"
+  description="Liz Loya's career path: Recording Arts at MediaTech Institute, CoHost Entertainment, Blaze TV Media, freelance AV, and Deep Ellum Recording Studio."
+>
+  <section class="section head">
+    <div class="wrap">
+      <p class="kicker">The path</p>
+      <h1 class="display page__h">Experience</h1>
+      <p class="head__lede">
+        Six stops. Open any one to see what is on record for it.
+      </p>
+    </div>
+  </section>
+
+  <section class="tl-sec">
+    <div class="wrap">
+      <ol class="tl">
+        {experience.map((e, i) => (
+          <li class="tl__i">
+            <span class="tl__dot" aria-hidden="true" data-kind={e.kind}></span>
+
+            <details class="tl__card" name="experience">
+              <summary class="tl__sum">
+                <span class="tl__n typewriter">{String(i + 1).padStart(2, "0")}</span>
+                <span class="tl__id">
+                  <span class="tl__org display">{e.org}</span>
+                  <span class="tl__role typewriter">{e.role}</span>
+                </span>
+                <span class="tl__chev" aria-hidden="true"></span>
+              </summary>
+
+              <div class="tl__body">
+                {e.image && (
+                  <div class="tl__media">
+                    <Tape x="22%" y="-10px" rot={-6} w="6rem" />
+                    <Photo
+                      name={e.image}
+                      alt={alts[e.image] ?? ""}
+                      sizes="(max-width: 56rem) 88vw, 40vw"
+                    />
+                  </div>
+                )}
+
+                <div class="tl__detail">
+                  {e.detail.length > 0 ? (
+                    <>
+                      <p class="kicker">On record</p>
+                      <ul class="tl__list typewriter">
+                        {e.detail.map((d) => <li>{d}</li>)}
+                      </ul>
+                    </>
+                  ) : (
+                    <Slot
+                      label="ADD ROLE RESPONSIBILITIES"
+                      note={`Responsibilities, skills and projects for ${e.org} have not been supplied.`}
+                    />
+                  )}
+                </div>
+              </div>
+            </details>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <section class="section note-sec">
+    <div class="wrap">
+      <Paper rot={-1} tone="index" class="note">
+        <p class="kicker">A note on this page</p>
+        <p class="note__p">
+          Roles and employers here are exactly as supplied &mdash; nothing has been
+          added to make the list look fuller. No dates were provided, so none are
+          shown. Responsibilities appear only where they were given.
+        </p>
+      </Paper>
+
+    </div>
+  </section>
+  <BookBand image="grad-console-a" />
+</Base>
+
+<style>
+  .page__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-4); }
+  .head__lede { color: var(--text-2); }
+
+  .tl-sec { padding-bottom: var(--s-9); }
+  .tl {
+    list-style: none;
+    margin: 0;
+    /* a timeline entry is a reading column, not a full-bleed band */
+    max-width: 54rem;
+    padding: 0 0 0 var(--s-6);
+    position: relative;
+    display: grid;
+    gap: var(--s-5);
+  }
+  /* the spine */
+  .tl::before {
+    content: "";
+    position: absolute;
+    left: 6px;
+    top: 0.6rem;
+    bottom: 0.6rem;
+    width: 2px;
+    background: linear-gradient(
+      180deg,
+      var(--violet) 0%,
+      var(--pink) 55%,
+      var(--pink) 100%
+    );
+    opacity: 0.55;
+  }
+  @media (min-width: 56rem) { .tl { padding-left: var(--s-8); } }
+
+  .tl__i { position: relative; }
+  .tl__dot {
+    position: absolute;
+    left: calc(var(--s-6) * -1 + 1px);
+    top: 1.35rem;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--paper-100);
+    box-shadow: 0 0 0 3px var(--ground-0);
+  }
+  .tl__dot[data-kind="education"] { background: var(--pink); }
+  @media (min-width: 56rem) {
+    .tl__dot { left: calc(var(--s-8) * -1 + 1px); }
+  }
+
+  .tl__card {
+    background: var(--ground-1);
+    border: 1px solid var(--rule-1);
+    transition: border-color var(--dur-2) var(--ease-paper),
+                box-shadow var(--dur-2) var(--ease-paper);
+  }
+  .tl__card:hover { border-color: var(--rule-1); }
+  .tl__card[open] {
+    border-color: var(--violet-deep);
+    box-shadow: var(--lift-2);
+  }
+
+  .tl__sum {
+    display: flex;
+    align-items: center;
+    gap: var(--s-4);
+    padding: var(--s-5);
+    cursor: pointer;
+    list-style: none;
+    min-height: 48px;
+  }
+  .tl__sum::-webkit-details-marker { display: none; }
+  .tl__n { color: var(--pink-deep); font-size: var(--t-sm); letter-spacing: 0.16em; }
+  .tl__id { display: grid; gap: 2px; }
+  .tl__org { font-size: var(--t-md); }
+  .tl__role { font-size: var(--t-xs); color: var(--text-2); letter-spacing: 0.1em; }
+  .tl__chev {
+    margin-left: auto;
+    width: 11px;
+    height: 11px;
+    border-right: 2px solid var(--text-2);
+    border-bottom: 2px solid var(--text-2);
+    rotate: 45deg;
+    transition: rotate var(--dur-2) var(--ease-paper);
+  }
+  .tl__card[open] .tl__chev { rotate: 225deg; }
+
+  .tl__body {
+    display: grid;
+    gap: var(--s-5);
+    padding: 0 var(--s-5) var(--s-6);
+    border-top: 1px solid var(--rule-1);
+    padding-top: var(--s-5);
+  }
+  @media (min-width: 56rem) {
+    .tl__body { grid-template-columns: 1fr 1fr; align-items: start; gap: var(--s-6); }
+  }
+  .tl__media { position: relative; background: var(--paper-100); padding: 0.6rem; }
+  .tl__media :global(img) { aspect-ratio: 4 / 3; object-fit: cover; }
+  .tl__list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+    font-size: var(--t-sm);
+    color: var(--text-2);
+  }
+  .tl__list li::before { content: "— "; color: var(--pink-deep); }
+
+  /* NOTE
+     A class passed to a component renders inside THAT component, so it
+     carries the component's scope id, not this page's. A plain `.note`
+     rule here would compile to `.note[data-astro-cid-<thispage>]` and
+     never match. Reach it through a locally-scoped ancestor instead. */
+  .note-sec :global(.note) { max-width: 42rem; }
+  .note__p { margin: var(--s-3) 0 0; font-size: var(--t-sm); color: var(--paper-ink); }
+</style>

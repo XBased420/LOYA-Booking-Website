@@ -1,0 +1,29 @@
+# ── Dependencies ────────────────────────────────────────────────
+node_modules/
+
+# ── Build output. `dist/` is GENERATED — editing it works right up
+#    until the next build overwrites it without warning. Always edit
+#    site/src and rebuild with REFRESHBUILD.bat. ──────────────────
+dist/
+site/dist/
+site/.astro/
+motion/out/
+
+# ── Retired files. Kept locally for reference, but shipping them
+#    resurrects dead copy as if it were live — a bug class this
+#    project has hit repeatedly. ─────────────────────────────────
+_retired/
+
+# ── Generated knowledge graph (graphify). Rebuildable from source. ─
+graphify-out/
+
+# ── Stray local artefacts ───────────────────────────────────────
+*.tgz
+*.tar.part.*
+out-shots*.png
+hate_2_2_KLICKAUD.mp3
+
+# ── OS noise ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

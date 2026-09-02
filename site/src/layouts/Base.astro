@@ -1,0 +1,236 @@
+---
+import "../styles/global.css";
+import Nav from "../components/Nav.astro";
+import SoundField from "../components/SoundField.astro";
+import SiteAudio from "../components/SiteAudio.astro";
+import { site, isPlaceholder, channelHref, contactChannels } from "../data/site";
+import { ClientRouter } from "astro:transitions";
+
+interface Props { title?: string; description?: string; ogImage?: string; }
+const {
+  title, description = site.seo.description,
+  ogImage = "/media/img/grad-console-a-1200.jpg",
+} = Astro.props;
+const fullTitle = title ? `${title} — ${site.name}` : site.seo.title;
+const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+/* Footer contact. Placeholders are skipped rather than rendered as gaps —
+   an unfilled [ADD LINKEDIN] on all 16 pages is noise, and the Contact page
+   already tracks it. */
+const footerChannels = contactChannels.filter((c) => !isPlaceholder(c.value));
+
+/* Grain is one shared SVG, rasterised once and reused site-wide. */
+const grain =
+  "url(\"data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180"><filter id="g"><feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="180" height="180" filter="url(#g)" opacity="0.55"/></svg>`
+  ) + "\")";
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content={site.name} />
+  <meta property="og:title" content={fullTitle} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={new URL(ogImage, Astro.site).href} />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="#fdf9f8" />
+  {/* PREVIEW GUARD — this site carries a real person's name, face and
+      work history, and Liz has not seen it live yet. Any deploy before
+      she signs off must stay out of search results. Flip PUBLIC to true
+      in src/data/site.ts only once she has approved going live. */}
+  {!site.PUBLIC && <meta name="robots" content="noindex, nofollow" />}
+  {/* Client-side routing. A link click becomes a fetch + history swap
+      instead of a full document load, which is what makes the site
+      navigable inside embedded/preview browsers that only permit the
+      first document load. It also removes the white flash between
+      pages. With JS off, every link still works as a plain href. */}
+  <ClientRouter />
+  <script type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: site.name,
+    jobTitle: site.roles,
+    address: { "@type": "PostalAddress", addressLocality: "Dallas", addressRegion: "TX" },
+    alumniOf: { "@type": "EducationalOrganization", name: "MediaTech Institute" },
+  })} />
+</head>
+<body style={`--grain-url: ${grain};`}>
+  {/* The animated background. Fixed to the viewport and sitting at
+      z-index -1, so it is behind every page without any page having to
+      know about it. See components/SoundField.astro. */}
+  <SoundField />
+  {/* Her track, offered in the bottom-left corner of every page. Never
+      autoplays; on play it feeds the SoundField analyser so the background
+      reacts to the real signal. See components/SiteAudio.astro. */}
+  <SiteAudio />
+  <a class="skip-link" href="#main">Skip to content</a>
+  <Nav />
+  <main id="main"><slot /></main>
+  <footer class="foot">
+    <div class="wrap">
+      <p class="display name">{site.name}</p>
+      <p class="typewriter roles">{site.rolesLine}</p>
+      <p class="typewriter loc">{site.location}</p>
+
+      {footerChannels.length > 0 && (
+        <ul class="reach typewriter">
+          {footerChannels.map((c) => (
+            <li>
+              <span class="reach__l">{c.label}</span>
+              <a
+                href={channelHref(c.key, String(c.value))}
+                {...(c.key === "email" ? {} : { target: "_blank", rel: "me noopener noreferrer" })}
+              >{String(c.value)}</a>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <a class="btn btn--primary" href="/book">Book a Session</a>
+    </div>
+  </footer>
+  <style>
+    .foot { border-top: 1px solid var(--rule-1); padding-block: var(--s-8); margin-top: var(--s-9); }
+    .foot .wrap { display: grid; gap: var(--s-3); justify-items: start; }
+    .name { font-size: var(--t-lg); }
+    .roles { color: var(--text-2); font-size: var(--t-sm); letter-spacing: .16em; }
+    .loc { color: var(--text-3); font-size: var(--t-xs); }
+    /* Someone who scrolls to the bottom instead of finding /contact should
+       still be able to reach her without another click. */
+    .reach {
+      list-style: none; margin: var(--s-3) 0 0; padding: 0;
+      display: flex; flex-wrap: wrap; gap: var(--s-2) var(--s-5);
+      font-size: var(--t-xs);
+    }
+    .reach li { display: grid; gap: 2px; }
+    .reach__l {
+      color: var(--text-3); letter-spacing: .16em; text-transform: uppercase;
+      font-size: .68rem;
+    }
+    .reach a { color: var(--pink-deep); text-decoration: none; }
+    .reach a:hover { text-decoration: underline; }
+    .foot .btn { margin-top: var(--s-3); }
+  </style>
+<script>
+    /* Motion is enhancement. If the visitor asked for less of it, every
+       reel holds on its poster frame instead of looping. Lives in the
+       layout so it covers the DJ page too, and is bound to
+       astro:page-load so it survives client-side navigation. */
+    const mq = matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => {
+      document.querySelectorAll("[data-reel]").forEach((v) => {
+        const vid = v as HTMLVideoElement;
+        /* Only mark it playing once frames are actually rendering, so a
+           blocked, stalled or reduced-motion video never gets faded in
+           over the still. */
+        if (!vid.dataset.bound) {
+          vid.dataset.bound = "1";
+/* The video is revealed only once it is genuinely
+             rendering picture; until then the still underneath shows.
+             Covers reduced motion, blocked autoplay, a stalled load and
+             a decode failure with the same code path. The black fade-in
+             is gone from the FILE, not worked around here. */
+          vid.addEventListener("playing", () => { vid.dataset.playing = "1"; });
+          vid.addEventListener("pause",   () => { delete vid.dataset.playing; });
+          vid.addEventListener("error",   () => { delete vid.dataset.playing; });
+        }
+        if (mq.matches) {
+          vid.pause();
+          vid.removeAttribute("autoplay");
+          delete vid.dataset.playing;
+        } else {
+          vid.play().catch(() => { delete vid.dataset.playing; });
+        }
+      });
+    };
+    apply();
+    mq.addEventListener("change", apply);
+    document.addEventListener("astro:page-load", apply);
+
+    /* ── Scroll reveal ──────────────────────────────────────────────
+       Every block inside a .wrap fades and drifts as it crosses the top
+       and bottom edges of the screen, in whichever direction you are
+       scrolling.
+
+       Why an inset root and not plain threshold-0: with no inset, a block
+       only stops intersecting once it is completely off screen, so the
+       fade-out happens where nobody can see it. Shrinking the root by 7%
+       top and bottom moves both edges inside the screen, which is what
+       makes leaving feel like the reverse of arriving.
+
+       7% is chosen, not arbitrary: the sticky nav is around 70px, and 7%
+       of even a short 600px viewport is only 42px, so the top dead band
+       always sits behind the bar and never swallows content that is at
+       the top of the document on first paint.
+
+       The CSS does nothing until this runs, so scripting off leaves the
+       page fully visible. */
+    const revealMq = matchMedia("(prefers-reduced-motion: reduce)");
+    let io: IntersectionObserver | null = null;
+
+    const reveal = () => {
+      io?.disconnect();
+      io = null;
+      if (revealMq.matches) {
+        /* Clear any state from before the setting changed, so nothing is
+           left stranded at opacity 0. */
+        document.querySelectorAll("[data-rev]").forEach((el) => {
+          el.removeAttribute("data-rev");
+          (el as HTMLElement).style.transitionDelay = "";
+        });
+        return;
+      }
+
+      io = new IntersectionObserver(
+        (entries) => {
+          for (const e of entries) {
+            e.target.setAttribute(
+              "data-rev",
+              e.isIntersecting ? "in" : e.boundingClientRect.top < 0 ? "up" : "down"
+            );
+          }
+        },
+        { threshold: 0, rootMargin: "-7% 0px -7% 0px" }
+      );
+
+      const blocks = [...document.querySelectorAll<HTMLElement>("main .wrap > *")];
+
+      /* Measure each block's own transform exactly once, the first time we
+         ever see it. Re-measuring on a later run would read the reveal's
+         own translateY — or a transition still in flight — as "this element
+         is rotated", and mark nearly every block as unmovable. New nodes
+         after a page swap have no marker, so they get measured properly. */
+      blocks.forEach((el) => {
+        if (el.hasAttribute("data-rev-init")) return;
+        el.setAttribute("data-rev-init", "");
+        if (getComputedStyle(el).transform !== "none") el.setAttribute("data-rev-still", "");
+      });
+
+      blocks.forEach((el) => {
+        const r = el.getBoundingClientRect();
+        const onScreen = r.bottom > 0 && r.top < innerHeight;
+        el.setAttribute("data-rev", onScreen ? "in" : r.top < 0 ? "up" : "down");
+
+        /* A short stagger within each group, so a row of cards arrives as
+           a run rather than as one slab. Capped at five so a long list
+           never ends up waiting half a second. */
+        const i = el.parentElement ? [...el.parentElement.children].indexOf(el) : 0;
+        el.style.transitionDelay = Math.min(i, 5) * 45 + "ms";
+
+        io!.observe(el);
+      });
+    };
+
+    reveal();
+    revealMq.addEventListener("change", reveal);
+    document.addEventListener("astro:page-load", reveal);
+  </script>
+</body>
+</html>

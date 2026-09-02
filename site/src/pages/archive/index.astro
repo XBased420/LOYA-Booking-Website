@@ -1,0 +1,134 @@
+---
+import Base from "../../layouts/Base.astro";
+import BookBand from "../../components/BookBand.astro";
+import Polaroid from "../../components/Polaroid.astro";
+import Paper from "../../components/Paper.astro";
+import Slot from "../../components/Slot.astro";
+import CategoryNav from "../../components/CategoryNav.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import { categories, archiveMedia, projects, mediaFor, projectsFor } from "../../data/work";
+
+const tilt = (i: number) => ((i % 5) - 2) * 1.1;
+---
+
+<Base
+  title="My Work"
+  description="The archive — Liz Loya's audio engineering, music, DJ and event, radio, live sound, AV and creative work, filed by category."
+  ogImage="/media/img/console-detail-1200.jpg"
+>
+  <section class="section head">
+    <div class="wrap">
+      <p class="kicker">Creative archive</p>
+      <h1 class="display page__h">My Work</h1>
+      <p class="head__lede">
+        Everything filed in one place. Each category is its own page, so you
+        can link straight to the part you care about.
+      </p>
+      <CategoryNav />
+    </div>
+  </section>
+
+  {categories.map((c, ci) => {
+    const media = mediaFor(c.slug);
+    const projs = projectsFor(c.slug);
+    if (media.length === 0 && projs.length === 0) return null;
+    return (
+      <section class="section cat">
+        <div class="wrap">
+          <div class="cat__head">
+            <div>
+              <h2 class="display cat__h">{c.label}</h2>
+              <p class="cat__b typewriter">{c.blurb}</p>
+            </div>
+            <a class="cat__more" href={`/archive/${c.slug}`}>
+              Open {c.label} &rarr;
+            </a>
+          </div>
+
+          {projs.length > 0 && (
+            <ul class="proj">
+              {projs.map((p) => <li><ProjectCard project={p} /></li>)}
+            </ul>
+          )}
+
+          <ul class="grid">
+            {media.map((m, i) => (
+              <li>
+                <Polaroid
+                  name={m.img} alt={m.alt} caption={m.cap} rot={tilt(i + ci)}
+                  sizes="(max-width: 48rem) 44vw, (max-width: 72rem) 30vw, 23vw"
+                />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    );
+  })}
+
+  <section class="section">
+    <div class="wrap">
+      <Paper rot={-0.8} tone="index" class="note">
+        <p class="kicker">What is here, and what is not</p>
+        <p class="note__p">
+          The images above are real documentation of the work &mdash;
+          {archiveMedia.length} of them, filed by what they show. What is
+          missing is the written project record: name, role, description,
+          audio, video, credits and links. That is a different thing, and it
+          has not been supplied yet.
+        </p>
+      </Paper>
+
+      <div class="note__slots">
+        <Slot
+          label="ADD PORTFOLIO PROJECTS"
+          note={`${projects.length} project records so far. Each carries name, role, category, description, media and credits.`}
+          size="lg"
+        />
+        <Slot label="ADD CLIENT CREDITS" note="Who I've worked with, once confirmed." size="sm" />
+        <Slot label="UPLOAD AUDIO SAMPLES" note="Audio attaches to a project record." size="sm" />
+      </div>
+    </div>
+  </section>
+  <BookBand image="console-detail" />
+</Base>
+
+<style>
+
+  /* the filter nav belongs to the content below it, not floating
+     between two full section paddings */
+  .head { padding-bottom: var(--s-3); }
+  .page__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-4); }
+  .head__lede { color: var(--text-2); max-width: 44rem; margin-bottom: var(--s-6); }
+
+  .cat { padding-block: var(--s-8); }
+  .cat__head {
+    display: flex; flex-wrap: wrap; justify-content: space-between;
+    align-items: baseline; gap: var(--s-4); margin-bottom: var(--s-6);
+    border-bottom: 1px solid var(--rule-1); padding-bottom: var(--s-4);
+  }
+  .cat__h { font-size: var(--t-lg); }
+  .cat__b { font-size: var(--t-xs); color: var(--text-2); margin-top: var(--s-2); }
+  .cat__more {
+    font-family: var(--font-type); font-size: var(--t-xs);
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--pink-deep); text-decoration: none; white-space: nowrap;
+    min-height: 44px; display: inline-flex; align-items: center;
+  }
+  .cat__more:hover { text-decoration: underline; }
+
+  .grid, .proj { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-6); }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 48rem) { .grid { grid-template-columns: repeat(3, 1fr); gap: var(--s-7); } }
+  @media (min-width: 72rem) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .proj { margin-bottom: var(--s-7); }
+  @media (min-width: 48rem) { .proj { grid-template-columns: repeat(2, 1fr); } }
+
+  .wrap :global(.note) { max-width: 44rem; }
+  .note__p { margin: var(--s-3) 0 0; font-size: var(--t-sm); color: var(--paper-ink); }
+  .note__slots { display: grid; gap: var(--s-3); margin-top: var(--s-6); }
+  @media (min-width: 48rem) {
+    .note__slots { grid-template-columns: 1fr 1fr; }
+    .note__slots > :global(*:first-child) { grid-column: 1 / -1; }
+  }
+</style>

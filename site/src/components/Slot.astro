@@ -1,0 +1,27 @@
+---
+/** A labelled gap. The specification forbids inventing content, so
+ *  missing information renders as a visible slot rather than being
+ *  filled with something plausible or silently dropped. */
+interface Props { label: string; note?: string; size?: "sm" | "md" | "lg"; }
+const { label, note, size = "md" } = Astro.props;
+---
+<div class="slot" data-size={size}>
+  <span class="slot__tag typewriter">[{label}]</span>
+  {note && <span class="slot__note typewriter">{note}</span>}
+</div>
+
+<style>
+  .slot {
+    display: grid; place-content: center; gap: var(--s-2);
+    text-align: center; padding: var(--s-5);
+    border: 1px dashed var(--rule-3);
+    background: repeating-linear-gradient(45deg,
+      rgba(31,23,32,.05) 0 8px, transparent 8px 16px);
+    color: var(--text-2);
+  }
+  .slot[data-size="sm"] { min-height: 4rem; padding: var(--s-3); }
+  .slot[data-size="md"] { min-height: 9rem; }
+  .slot[data-size="lg"] { min-height: 16rem; }
+  .slot__tag  { font-size: var(--t-sm); letter-spacing: .12em; color: var(--pink-deep); }
+  .slot__note { font-size: var(--t-xs); color: var(--text-3); }
+</style>

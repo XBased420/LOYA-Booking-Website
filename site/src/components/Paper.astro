@@ -1,0 +1,43 @@
+---
+/** A sheet of paper on the wall. The tactile substrate for text
+ *  fragments, notes and clippings. */
+interface Props {
+  rot?: number; tone?: "cream" | "news" | "index"; class?: string; tape?: boolean;
+}
+const { rot = 0, tone = "cream", class: className = "", tape = true } = Astro.props;
+import Tape from "./Tape.astro";
+---
+<div class={`paper ${className}`} data-tone={tone} style={`--rot:${rot}deg;`}>
+  {tape && <Tape x="18%" y="-12px" rot={-7} w="7rem" />}
+  <div class="paper__inner"><slot /></div>
+</div>
+
+<style>
+  .paper {
+    position: relative;
+    transform: rotate(var(--rot));
+    box-shadow: var(--lift-2);
+    color: var(--paper-ink);
+    transition: transform var(--dur-2) var(--ease-paper),
+                box-shadow var(--dur-2) var(--ease-paper);
+  }
+  .paper::after {           /* fibre grain */
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background-image:
+      repeating-linear-gradient(94deg, rgba(0,0,0,.020) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(2deg, rgba(0,0,0,.014) 0 1px, transparent 1px 4px);
+    mix-blend-mode: multiply;
+  }
+  .paper__inner { padding: var(--s-6); position: relative; z-index: 1; }
+
+  .paper[data-tone="cream"] { background: var(--paper-100); }
+  .paper[data-tone="news"]  { background: var(--paper-300); }
+  .paper[data-tone="index"] {
+    background:
+      linear-gradient(var(--paper-200), var(--paper-200)),
+      repeating-linear-gradient(180deg,
+        transparent 0 1.55rem, rgba(64,90,140,.22) 1.55rem 1.6rem);
+    background-blend-mode: multiply;
+  }
+  .paper:hover { transform: rotate(calc(var(--rot) * .45)) translateY(-4px); }
+</style>

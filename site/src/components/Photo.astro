@@ -1,0 +1,44 @@
+---
+import { srcset, fallback, hasImage } from "../lib/media";
+
+interface Props {
+  name: string;
+  alt: string;
+  sizes?: string;
+  class?: string;
+  loading?: "lazy" | "eager";
+  fetchpriority?: "high" | "auto";
+}
+const {
+  name, alt, sizes = "(max-width: 60rem) 92vw, 42vw",
+  class: className = "", loading = "lazy", fetchpriority = "auto",
+} = Astro.props;
+
+const missing = !hasImage(name);
+---
+{missing ? (
+  <div class={`photo-missing typewriter ${className}`} role="img" aria-label={`Missing image: ${alt}`}>
+    [MISSING IMAGE — {name}]
+  </div>
+) : (
+  <picture class={className}>
+    <source type="image/avif" srcset={srcset(name, "avif")} sizes={sizes} />
+    <source type="image/webp" srcset={srcset(name, "webp")} sizes={sizes} />
+    <img
+      src={fallback(name)} srcset={srcset(name, "jpg")} sizes={sizes}
+      alt={alt} loading={loading} decoding="async" fetchpriority={fetchpriority}
+    />
+  </picture>
+)}
+
+<style>
+  picture { display: block; }
+  picture :global(img) { width: 100%; height: 100%; object-fit: cover; }
+  .photo-missing {
+    display: grid; place-items: center; min-height: 12rem; padding: var(--s-4);
+    background: repeating-linear-gradient(45deg,
+      var(--ground-2) 0 10px, var(--ground-3) 10px 20px);
+    color: var(--text-2); font-size: var(--t-xs); text-align: center;
+    border: 1px dashed var(--text-3);
+  }
+</style>

@@ -1,0 +1,262 @@
+---
+/* ═══════════════════════════════════════════════════════════════
+   SITE AUDIO — the corner player.
+
+   Chosen from the five player studies (2026-08-31): "Ring", moved to the
+   bottom left. Button first, title after it: at the left edge the text has
+   to run inward, or it walks off the side of the screen.
+
+   Three things worth knowing:
+
+   1. IT NEVER AUTOPLAYS. Browsers block it, and sound that starts on its
+      own is the fastest way to get a tab closed. The visitor presses it.
+
+   2. IT FEEDS THE BACKGROUND. On first play it hands the audio element to
+      window.LoyaSound (components/SoundField.astro), which routes it
+      through a real AnalyserNode — so the spectrum along the bottom of
+      the page is reacting to this track, not to a timer.
+
+   3. IT SURVIVES NAVIGATION. Both the <audio> element and the control
+      carry transition:persist, so clicking through to another page does
+      not cut the song off mid-bar. Without that the router swaps in a
+      fresh <audio> and playback stops.
+   ═══════════════════════════════════════════════════════════════ */
+import { backgroundTrack as track } from "../data/work";
+
+const label = `${track.title} by ${track.artist}`;
+---
+
+<audio
+  id="site-audio"
+  transition:persist="site-audio"
+  src={track.src}
+  preload="metadata"
+  loop
+  aria-label={label}
+></audio>
+
+{/* With scripting off the ring is an inert circle, and this project's rule
+    is that controls work without JS or are not shown. So the drawn control
+    is hidden until its script has claimed it, and a plain native player
+    takes its place otherwise — same track, same corner, no custom code. */}
+<noscript>
+  <div class="dock dock--plain">
+    <audio src={track.src} controls preload="none" aria-label={label}></audio>
+  </div>
+</noscript>
+
+<div class="dock" id="site-dock" transition:persist="site-dock">
+  <button class="dock__btn" type="button" id="site-audio-btn" aria-label={`Play ${label}`}>
+    <svg class="dock__ring" viewBox="0 0 60 60" aria-hidden="true" focusable="false">
+      <circle class="dock__ring-bg" cx="30" cy="30" r="28"></circle>
+      <circle
+        class="dock__ring-fg" cx="30" cy="30" r="28"
+        stroke-dasharray="175.93" stroke-dashoffset="175.93"
+      ></circle>
+    </svg>
+    <span class="dock__ico" aria-hidden="true"></span>
+  </button>
+
+  <span class="dock__t">
+    <span class="dock__title display">{track.title}</span>
+    <span class="dock__by typewriter">{track.artist}</span>
+  </span>
+</div>
+
+<style>
+  .dock {
+    /* Hidden until the script attaches. See the noscript block above. */
+    display: none;
+    position: fixed;
+    left: clamp(0.85rem, 2.5vw, 2.2rem);
+    bottom: clamp(0.85rem, 2.5vw, 2.2rem);
+    z-index: 30;
+    align-items: center;
+    gap: var(--s-3);
+  }
+  .dock[data-ready], .dock--plain { display: flex; }
+  .dock--plain audio { width: min(17rem, 60vw); }
+
+  .dock__btn {
+    position: relative;
+    width: 3.4rem;
+    height: 3.4rem;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    padding: 0;
+    background: var(--paper-100);
+    box-shadow: var(--lift-1);
+    cursor: pointer;
+    transition: transform var(--dur-2) var(--ease-paper);
+  }
+  .dock__btn:hover { transform: scale(1.06); }
+
+  .dock__ring { position: absolute; inset: 0; transform: rotate(-90deg); }
+  .dock__ring circle { fill: none; stroke-width: 2; }
+  .dock__ring-bg { stroke: rgba(31, 23, 32, 0.13); }
+  .dock__ring-fg { stroke: var(--pink-deep); stroke-linecap: round; }
+
+  /* A triangle by clip-path rather than an icon file — two states, no
+     request, and it inherits colour. */
+  .dock__ico {
+    display: block;
+    width: 0.6rem;
+    height: 0.72rem;
+    margin-left: 3px;
+    background: var(--pink-deep);
+    clip-path: polygon(0 0, 100% 50%, 0 100%);
+  }
+  .dock[data-on] .dock__ico { margin-left: 0; clip-path: inset(0 22% 0 22%); }
+
+  /* The label is a nicety, not the control. Below the button it would push
+     the whole thing taller; beside it, it can simply go away on a phone
+     where the corner is scarce. */
+  .dock__t { display: grid; gap: 1px; line-height: 1.15; }
+  .dock__title { font-size: var(--t-sm); color: var(--text-1); }
+  .dock__by {
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-3);
+  }
+  /* On a phone the corner is scarce and the control is competing with real
+     content, so it drops the label and takes up less room. It still
+     overlaps whatever happens to scroll under it — that is true of every
+     persistent player — but a 44px circle costs the least. */
+  @media (max-width: 30rem) {
+    .dock { left: 0.7rem; bottom: 0.7rem; }
+    .dock__t { display: none; }
+    .dock__btn { width: 2.9rem; height: 2.9rem; }
+    .dock__ico { width: 0.52rem; height: 0.62rem; }
+
+    /* On a phone the hero's Book a Session button lands in this exact
+       corner, and a fixed control sitting on the site's primary action is
+       not a trade worth making. So on narrow screens the player waits
+       until the visitor has scrolled past the first screen — and once the
+       track is playing it stays put regardless, because then it is the
+       control someone is looking for. Desktop is unaffected. */
+    .dock[data-ready] {
+      transition: opacity var(--dur-2) var(--ease-paper),
+                  transform var(--dur-2) var(--ease-paper);
+    }
+    .dock[data-tuck] { opacity: 0; transform: translateY(10px); pointer-events: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dock__btn { transition: none; }
+    .dock__btn:hover { transform: none; }
+  }
+</style>
+
+<script>
+  (() => {
+    const RING = 2 * Math.PI * 28;
+    let audio: HTMLAudioElement | null = null;
+    let btn: HTMLButtonElement | null = null;
+    let dock: HTMLElement | null = null;
+    let ring: SVGCircleElement | null = null;
+    let raf = 0;
+    let started = false;
+
+    const label = () => audio?.getAttribute("aria-label") ?? "the track";
+
+    /* Phone-only tuck. See the max-width block in the styles above. */
+    const narrow = matchMedia("(max-width: 30rem)");
+    let tickScroll = 0;
+    function tuck() {
+      tickScroll = 0;
+      if (!dock) return;
+      const hide = narrow.matches && audio?.paused !== false && scrollY < innerHeight * 0.55;
+      if (hide) dock.setAttribute("data-tuck", "");
+      else dock.removeAttribute("data-tuck");
+    }
+    function onScroll() { if (!tickScroll) tickScroll = requestAnimationFrame(tuck); }
+
+    function paintProgress() {
+      if (!audio || !ring) return;
+      const d = audio.duration;
+      const pct = isFinite(d) && d > 0 ? audio.currentTime / d : 0;
+      ring.setAttribute("stroke-dashoffset", (RING * (1 - pct)).toFixed(2));
+    }
+
+    function tick() {
+      paintProgress();
+      raf = audio && !audio.paused ? requestAnimationFrame(tick) : 0;
+    }
+
+    function setOn(on: boolean) {
+      if (!dock || !btn) return;
+      if (on) dock.setAttribute("data-on", "");
+      else dock.removeAttribute("data-on");
+      btn.setAttribute("aria-label", (on ? "Pause " : "Play ") + label());
+      tuck();
+    }
+
+    async function toggle() {
+      if (!audio) return;
+      if (audio.paused) {
+        /* Hand the element to the background so the spectrum reacts to the
+           real signal. Safe to call every time — it builds the graph once
+           and resumes the context after that. Must happen inside this
+           click: an AudioContext cannot start without a user gesture. */
+        (window as any).LoyaSound?.listenTo?.(audio);
+        try {
+          await audio.play();
+        } catch {
+          /* Blocked or the file is missing. Leave the control alone rather
+             than showing a broken playing state. */
+          setOn(false);
+        }
+      } else {
+        audio.pause();
+        (window as any).LoyaSound?.stop?.();
+      }
+    }
+
+    /* Re-acquire after a client-side navigation. transition:persist keeps
+       the same nodes, but if anything ever replaces them this picks the new
+       ones up instead of driving a detached element. */
+    function attach() {
+      const a = document.getElementById("site-audio") as HTMLAudioElement | null;
+      const d = document.getElementById("site-dock");
+      const b = document.getElementById("site-audio-btn") as HTMLButtonElement | null;
+      if (!a || !d || !b) return;
+
+      if (a !== audio) {
+        audio = a;
+        /* Background music sits under the content, so it comes in a little
+           below full. One number to change if she wants it louder. */
+        audio.volume = 0.8;
+        audio.addEventListener("play", () => {
+          setOn(true);
+          if (!raf) raf = requestAnimationFrame(tick);
+        });
+        audio.addEventListener("pause", () => setOn(false));
+        audio.addEventListener("loadedmetadata", paintProgress);
+      }
+      dock = d;
+      dock.setAttribute("data-ready", "");
+      ring = d.querySelector(".dock__ring-fg");
+      if (b !== btn) {
+        btn = b;
+        btn.addEventListener("click", toggle);
+      }
+      setOn(!audio.paused);
+      tuck();
+      paintProgress();
+      if (!audio.paused && !raf) raf = requestAnimationFrame(tick);
+    }
+
+    if (!started) {
+      started = true;
+      addEventListener("scroll", onScroll, { passive: true });
+      addEventListener("resize", onScroll, { passive: true });
+      narrow.addEventListener("change", tuck);
+      document.addEventListener("astro:page-load", attach);
+      attach();
+    }
+  })();
+</script>

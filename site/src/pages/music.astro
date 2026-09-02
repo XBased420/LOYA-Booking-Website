@@ -1,0 +1,152 @@
+---
+import Base from "../layouts/Base.astro";
+import Polaroid from "../components/Polaroid.astro";
+import Paper from "../components/Paper.astro";
+import Slot from "../components/Slot.astro";
+import AudioTrack from "../components/AudioTrack.astro";
+import BookBand from "../components/BookBand.astro";
+import { tracksFor, mediaFor } from "../data/work";
+
+const tracks = tracksFor("music");
+
+/** §13 names eight possible shelves. They are listed as structure, not as
+ *  claims that each one is populated — the count beside each is real. */
+const shelves = [
+  { label: "Songs",           gap: "ADD MUSIC RELEASES" },
+  { label: "Releases",        gap: "ADD MUSIC RELEASES" },
+  { label: "Productions",     gap: "ADD PORTFOLIO PROJECTS" },
+  { label: "Beats",           gap: "UPLOAD AUDIO SAMPLES" },
+  { label: "Music videos",    gap: "ADD PORTFOLIO PROJECTS" },
+  { label: "Visual projects", gap: "ADD PORTFOLIO PROJECTS" },
+  { label: "Artwork",         gap: "ADD PORTFOLIO PROJECTS" },
+];
+const musicMedia = mediaFor("music");
+---
+
+<Base
+  title="Music"
+  description="The music archive — Liz Loya's own releases, productions, beats and creative projects."
+  ogImage="/media/img/piano-mic-1200.jpg"
+>
+  <section class="section head">
+    <div class="wrap">
+      <p class="kicker">Archive</p>
+      <h1 class="display page__h">Music</h1>
+      <p class="head__lede">
+        My own work, rather than the work I do for other people. This is
+        the collection &mdash; open the drawer and see what is in it.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap listen__grid">
+      <div>
+        <p class="kicker">Listen</p>
+        <h2 class="display sec__h">Play something</h2>
+        <p class="sec__lede">Nothing starts on its own.</p>
+
+        <div class="tracks">
+          {tracks.length > 0
+            ? tracks.map((t, i) => <AudioTrack track={t} rot={(i % 2 ? 1 : -1) * 0.8} />)
+            : <AudioTrack label="UPLOAD AUDIO SAMPLES" />}
+        </div>
+      </div>
+
+      {musicMedia.length > 0 && (
+        <ul class="mm">
+          {musicMedia.map((m, i) => (
+            <li>
+              <Polaroid
+                name={m.img} alt={m.alt} caption={m.cap} rot={i % 2 ? 2 : -2.3}
+                sizes="(max-width: 56rem) 78vw, 30vw"
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <p class="kicker">The collection</p>
+      <h2 class="display sec__h">Shelves</h2>
+      <p class="sec__lede">
+        The archive is built for all of this. What is on each shelf today is
+        listed honestly &mdash; nothing has been padded out.
+      </p>
+
+      <ul class="shelf">
+        {shelves.map((s, i) => (
+          <li class="shelf__i" style={`--rot:${((i % 3) - 1) * 0.6}deg;`}>
+            <span class="shelf__l display">{s.label}</span>
+            <span class="shelf__c typewriter">0 filed</span>
+            <span class="shelf__g typewriter">[{s.gap}]</span>
+          </li>
+        ))}
+      </ul>
+
+      <Paper rot={-0.8} tone="index" class="note">
+        <p class="kicker">Where this goes</p>
+        <p class="note__p">
+          Music records live in the archive alongside everything else, so they
+          exist in exactly one place.
+          <a class="note__a" href="/archive/music">Open the music archive &rarr;</a>
+        </p>
+      </Paper>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <div class="slots">
+        <Slot label="ADD MUSIC RELEASES" note="Titles, dates, artwork and links." size="lg" />
+        <Slot label="UPLOAD AUDIO SAMPLES" note="Attaches to a release or project record." size="sm" />
+        <Slot label="ADD FINAL REFERENCE IMAGES" note="Artwork and visual references." size="sm" />
+      </div>
+    </div>
+  </section>
+
+  <BookBand
+    heading="Working on something?"
+    body="Production, mixing, or building a record from nothing."
+    cta="Book a Session"
+    image="piano-mic"
+  />
+</Base>
+
+<style>
+  .head { padding-bottom: var(--s-4); }
+  .page__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-4); }
+  .head__lede { color: var(--text-2); max-width: 42rem; }
+  .sec__h { font-size: var(--t-lg); margin-block: var(--s-2) var(--s-3); }
+  .sec__lede { color: var(--text-2); margin-bottom: var(--s-5); max-width: 40rem; }
+
+  .listen__grid { display: grid; gap: var(--s-7); align-items: start; }
+  @media (min-width: 56rem) { .listen__grid { grid-template-columns: 1.2fr 0.8fr; gap: var(--s-8); } }
+  .tracks { display: grid; gap: var(--s-4); }
+  .mm { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-5); }
+
+  .shelf { list-style: none; margin: 0 0 var(--s-7); padding: 0; display: grid; gap: var(--s-3); }
+  @media (min-width: 40rem) { .shelf { grid-template-columns: 1fr 1fr; } }
+  @media (min-width: 68rem) { .shelf { grid-template-columns: repeat(3, 1fr); } }
+  .shelf__i {
+    display: grid; gap: 3px; padding: var(--s-4) var(--s-5);
+    background: var(--ground-1); border: 1px solid var(--rule-1);
+    border-left: 3px solid var(--pink);
+    transform: rotate(var(--rot));
+  }
+  .shelf__l { font-size: var(--t-md); }
+  .shelf__c { font-size: var(--t-xs); color: var(--text-3); }
+  .shelf__g { font-size: var(--t-xs); color: var(--pink-deep); }
+
+  .wrap :global(.note) { max-width: 42rem; }
+  .note__p { margin: var(--s-3) 0 0; font-size: var(--t-sm); color: var(--paper-ink); }
+  .note__a { color: #7a4a00; font-weight: 700; }
+  .slots { display: grid; gap: var(--s-3); }
+  @media (min-width: 48rem) {
+    .slots { grid-template-columns: 1fr 1fr; }
+    .slots > :global(*:first-child) { grid-column: 1 / -1; }
+  }
+</style>

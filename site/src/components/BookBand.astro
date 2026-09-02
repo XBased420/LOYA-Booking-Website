@@ -1,0 +1,38 @@
+---
+import Photo from "./Photo.astro";
+
+/** The closing conversion band. Repeated across pages, so it lives here
+ *  rather than being pasted with slightly different padding each time. */
+interface Props {
+  heading?: string;
+  body?: string;
+  cta?: string;
+  image?: string;
+}
+const {
+  heading = "Book a session",
+  body = "Recording, mixing, production, or a set for your event.",
+  cta = "Book a Session",
+  image = "console-standing",
+} = Astro.props;
+---
+<section class="band grain">
+  <Photo name={image} alt="" sizes="100vw" class="band__bg" />
+  <div class="band__veil"></div>
+  <div class="wrap band__in">
+    <h2 class="display band__h">{heading}</h2>
+    <p class="band__p">{body}</p>
+    <a class="btn btn--primary band__btn" href="/book">{cta}</a>
+  </div>
+</section>
+
+<style>
+  .band { position: relative; overflow: hidden; padding-block: var(--s-9); }
+  .band :global(.band__bg) { position: absolute; inset: 0; }
+  .band :global(.band__bg img) { width: 100%; height: 100%; object-fit: cover; }
+  .band__veil { position: absolute; inset: 0; background: rgba(253,249,248,.86); }
+  .band__in { position: relative; text-align: center; }
+  .band__h { font-size: var(--t-xl); }
+  .band__p { margin: var(--s-4) auto var(--s-6); color: var(--text-2); max-width: 42rem; }
+  .band__btn { margin-inline: auto; }
+</style>

@@ -1,0 +1,252 @@
+---
+import Base from "../layouts/Base.astro";
+import BookBand from "../components/BookBand.astro";
+import Polaroid from "../components/Polaroid.astro";
+import Paper from "../components/Paper.astro";
+import Photo from "../components/Photo.astro";
+import Slot from "../components/Slot.astro";
+import { site, education, disciplines, tools, isPlaceholder } from "../data/site";
+
+const grads = [
+  { img: "grad-console-a", alt: "Liz Loya in cap and gown at a large mixing console.", cap: "the desk, graduation day", rot: -2.6 },
+  { img: "grad-diploma",   alt: "Liz Loya holding her Recording Arts diploma.",         cap: "Recording Arts",         rot: 2.2 },
+  { img: "grad-group",     alt: "Graduating class throwing caps in the air.",                 cap: "the class",              rot: -1.4 },
+];
+---
+
+<Base
+  title="About"
+  description="Liz Loya is a Dallas-based audio engineer, DJ and artist trained in Recording Arts at MediaTech Institute."
+  ogImage="/media/img/headphones-portrait-800.jpg"
+>
+  <section class="section intro-sec">
+    <div class="wrap">
+      <p class="kicker">Who I am</p>
+      <!-- spans not <br>, so it reads "About Liz" not "AboutLiz" -->
+      <h1 class="display page__h"><span>About</span> <span>Liz</span></h1>
+
+      <div class="intro">
+        <Polaroid
+          name="headphones-portrait"
+          alt="Liz Loya wearing headphones in the studio."
+          caption="in the room"
+          rot={-2.4}
+          loading="eager"
+          priority={true}
+          sizes="(max-width: 56rem) 82vw, 34vw"
+          class="intro__photo"
+        />
+
+        <div class="intro__words">
+          <Paper rot={1} tone="cream">
+            <p class="intro__quote">{site.intro}</p>
+            <p class="hand intro__sign">&mdash; Liz</p>
+          </Paper>
+
+          <p class="intro__loc typewriter">Based in {site.location}</p>
+
+          <div class="intro__bio">
+            <p class="kicker">More of the story</p>
+            {isPlaceholder(site.bio)
+              ? <Slot
+                  label={site.bio.__placeholder}
+                  note="One verified line exists. A longer bio has not been supplied yet."
+                />
+              : <p class="intro__bio-text">{site.bio}</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section trained">
+    <div class="wrap trained__grid">
+      <div class="trained__media">
+        <Photo
+          name="mediatech-building"
+          alt="The MediaTech Institute building exterior."
+          sizes="(max-width: 56rem) 90vw, 44vw"
+          class="trained__img"
+        />
+        <span class="trained__tag typewriter">MediaTech Institute</span>
+      </div>
+
+      <div class="trained__body">
+        <p class="kicker">Trained</p>
+        <h2 class="display trained__h">{education.school}</h2>
+        <p class="trained__cred typewriter">{education.credential}</p>
+
+        <Paper rot={-1.2} tone="index" class="trained__card">
+          <p class="kicker">Training included</p>
+          <ul class="trained__list">
+            {education.training.map((t) => <li>{t}</li>)}
+          </ul>
+        </Paper>
+      </div>
+    </div>
+  </section>
+
+  <section class="section grad">
+    <div class="wrap">
+      <p class="kicker">Pinned up</p>
+      <h2 class="display grad__h">The paper on the wall</h2>
+      <ul class="grad__row">
+        {grads.map((g) => (
+          <li>
+            <Polaroid
+              name={g.img}
+              alt={g.alt}
+              caption={g.cap}
+              rot={g.rot}
+              sizes="(max-width: 48rem) 84vw, 30vw"
+            />
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section doing">
+    <div class="wrap">
+      <p class="kicker">What I do</p>
+      <h2 class="display doing__h">Eight ways in</h2>
+      <ul class="doing__grid">
+        {disciplines.map((d, i) => (
+          <li class="doing__card" style={`--rot:${((i % 4) - 1.5) * 0.9}deg;`}>
+            <span class="doing__n typewriter">{String(i + 1).padStart(2, "0")}</span>
+            <span class="doing__t display">{d.title}</span>
+            <span class="doing__note typewriter">{d.note}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Paper rot={0.8} tone="news" class="doing__tools">
+        <p class="kicker">What I work in</p>
+        <ul class="doing__tools-list typewriter">
+          {tools.map((t) => <li>{t}</li>)}
+        </ul>
+      </Paper>
+    </div>
+  </section>
+
+  <section class="section next">
+    <div class="wrap next__in">
+      <h2 class="display next__h">The path here</h2>
+      <p class="next__p">Six stops, from a Recording Arts degree to the studio floor.</p>
+      <a class="btn btn--primary" href="/experience">See the experience</a>
+    </div>
+  </section>
+  <BookBand image="console-portrait" />
+</Base>
+
+<style>
+  .page__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-7); }
+  .page__h span { display: block; }
+
+  /* INTRO */
+  .intro { display: grid; gap: var(--s-7); }
+  /* passed to <Polaroid>, so it lands under Polaroid's scope */
+  .intro :global(.intro__photo) { max-width: 26rem; }
+  @media (min-width: 56rem) {
+    .intro { grid-template-columns: 0.75fr 1fr; align-items: start; gap: var(--s-8); }
+  }
+  .intro__words { display: grid; gap: var(--s-5); align-content: start; }
+  .intro__quote { font-size: var(--t-md); line-height: 1.45; margin-bottom: var(--s-3); }
+  .intro__sign { margin: 0; color: var(--paper-ink-soft); }
+  .intro__loc { font-size: var(--t-sm); color: var(--text-2); letter-spacing: 0.12em; }
+  .intro__bio { display: grid; gap: var(--s-3); }
+
+  /* TRAINED */
+  .trained__grid { display: grid; gap: var(--s-7); }
+  @media (min-width: 56rem) {
+    .trained__grid { grid-template-columns: 1fr 0.9fr; align-items: center; gap: var(--s-8); }
+  }
+  .trained__media { position: relative; }
+  .trained__media :global(.trained__img) { border: 1px solid var(--rule-2); }
+  .trained__media :global(.trained__img img) { aspect-ratio: 4 / 3; object-fit: cover; }
+  .trained__tag {
+    position: absolute;
+    left: var(--s-4);
+    bottom: var(--s-4);
+    background: var(--paper-100);
+    color: var(--paper-ink);
+    padding: var(--s-2) var(--s-4);
+    font-size: var(--t-xs);
+    letter-spacing: 0.14em;
+    transform: rotate(-1.4deg);
+    box-shadow: var(--lift-1);
+  }
+  .trained__h { font-size: var(--t-xl); margin-block: var(--s-2) var(--s-2); }
+  .trained__cred { color: var(--text-2); font-size: var(--t-sm); margin-bottom: var(--s-5); }
+  .trained__list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-2);
+    font-family: var(--font-type);
+    font-size: var(--t-sm);
+    color: var(--paper-ink);
+  }
+  .trained__list li::before { content: "— "; color: var(--paper-ink-soft); }
+
+  /* GRADUATION CLUSTER */
+  .grad__h { font-size: var(--t-lg); margin-block: var(--s-2) var(--s-6); }
+  .grad__row {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: var(--s-6);
+  }
+  @media (min-width: 48rem) {
+    .grad__row { grid-template-columns: repeat(3, 1fr); gap: var(--s-7); }
+    .grad__row li:nth-child(2) { margin-top: var(--s-7); }
+    .grad__row li:nth-child(3) { margin-top: calc(var(--s-4) * -1); }
+  }
+
+  /* WHAT I DO */
+  .doing__h { font-size: var(--t-lg); margin-block: var(--s-2) var(--s-6); }
+  .doing__grid {
+    list-style: none;
+    margin: 0 0 var(--s-7);
+    padding: 0;
+    display: grid;
+    gap: var(--s-4);
+  }
+  @media (min-width: 40rem) { .doing__grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (min-width: 64rem) { .doing__grid { grid-template-columns: repeat(4, 1fr); } }
+  .doing__card {
+    display: grid;
+    gap: var(--s-1);
+    padding: var(--s-5);
+    background: var(--ground-1);
+    border: 1px solid var(--rule-1);
+    transform: rotate(var(--rot));
+    transition: transform var(--dur-2) var(--ease-paper),
+                border-color var(--dur-2) var(--ease-paper);
+  }
+  .doing__card:hover {
+    transform: rotate(0deg) translateY(-4px);
+    border-color: var(--violet-deep);
+  }
+  .doing__n { font-size: var(--t-xs); color: var(--pink-deep); letter-spacing: 0.2em; }
+  .doing__t { font-size: var(--t-md); }
+  .doing__note { font-size: var(--t-xs); color: var(--text-2); }
+  .doing__tools-list {
+    list-style: none;
+    margin: var(--s-3) 0 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-2) var(--s-5);
+    font-size: var(--t-sm);
+    color: var(--paper-ink);
+  }
+
+  /* NEXT */
+  .next__in { display: grid; gap: var(--s-3); justify-items: start; }
+  .next__h { font-size: var(--t-lg); }
+  .next__p { color: var(--text-2); }
+  .next__in .btn { margin-top: var(--s-3); }
+</style>

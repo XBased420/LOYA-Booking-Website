@@ -1,0 +1,140 @@
+---
+import Base from "../../layouts/Base.astro";
+import BookBand from "../../components/BookBand.astro";
+import Polaroid from "../../components/Polaroid.astro";
+import Paper from "../../components/Paper.astro";
+import Slot from "../../components/Slot.astro";
+import CategoryNav from "../../components/CategoryNav.astro";
+import ProjectCard from "../../components/ProjectCard.astro";
+import AudioTrack from "../../components/AudioTrack.astro";
+import { categories, mediaFor, projectsFor, tracksFor } from "../../data/work";
+
+/** One static page per category. Filtering is real URLs rather than
+ *  client-side JS, so every filter is linkable, shareable, crawlable, and
+ *  works with scripting disabled. */
+export function getStaticPaths() {
+  return categories.map((c) => ({
+    params: { category: c.slug },
+    props: { cat: c },
+  }));
+}
+
+const { cat } = Astro.props;
+const media = mediaFor(cat.slug);
+const projs = projectsFor(cat.slug);
+const trks = tracksFor(cat.slug);
+const empty = media.length === 0 && projs.length === 0 && trks.length === 0;
+const tilt = (i: number) => ((i % 5) - 2) * 1.2;
+---
+
+<Base
+  title={`${cat.label} — My Work`}
+  description={`${cat.label}: ${cat.blurb} Part of Liz Loya's creative archive.`}
+>
+  <section class="section head">
+    <div class="wrap">
+      <p class="kicker">
+        <a class="head__up" href="/archive">Archive</a> / {cat.label}
+      </p>
+      <h1 class="display page__h">{cat.label}</h1>
+      <p class="head__lede">{cat.blurb}</p>
+      <CategoryNav current={cat.slug} />
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      {projs.length > 0 && (
+        <>
+          <h2 class="kicker sec__k">Projects &mdash; {projs.length}</h2>
+        <ul class="proj">
+          {projs.map((p) => <li><ProjectCard project={p} /></li>)}
+        </ul>
+        </>
+      )}
+
+      {trks.length > 0 && (
+        <>
+          <h2 class="kicker sec__k">
+            Listen &mdash; {trks.length} {trks.length === 1 ? "track" : "tracks"}
+          </h2>
+          <div class="listen">
+            {trks.map((t, i) => <AudioTrack track={t} rot={(i % 2 ? 1 : -1) * 0.8} />)}
+          </div>
+        </>
+      )}
+
+      {media.length > 0 && (
+        <>
+          <h2 class="kicker sec__k">Documentation &mdash; {media.length} images</h2>
+          <ul class="grid">
+            {media.map((m, i) => (
+              <li>
+                <Polaroid
+                  name={m.img} alt={m.alt} caption={m.cap} rot={tilt(i)}
+                  sizes="(max-width: 48rem) 44vw, (max-width: 72rem) 30vw, 23vw"
+                />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {empty && (
+        <Paper rot={-0.7} tone="index" class="empty">
+          <p class="kicker">Nothing filed here yet</p>
+          <p class="empty__p">
+            No {cat.label.toLowerCase()} work has been supplied. This category
+            exists because the archive is structured for it &mdash; the moment a
+            record lands, it appears here and on the pages that link to it.
+          </p>
+        </Paper>
+      )}
+
+      <div class="slots">
+        <Slot
+          label="ADD PORTFOLIO PROJECTS"
+          note={`Project records filed under ${cat.label}: name, role, description, media and credits.`}
+          size={empty ? "lg" : "md"}
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap back">
+      <a class="btn btn--ghost" href="/archive">&larr; All work</a>
+    </div>
+  </section>
+
+  <BookBand image="protools-ssl" />
+</Base>
+
+<style>
+
+  /* the filter nav belongs to the content below it, not floating
+     between two full section paddings */
+  .head { padding-bottom: var(--s-3); }
+  .page__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-3); }
+  .head__lede { color: var(--text-2); max-width: 42rem; margin-bottom: var(--s-6); }
+  .head__up { color: var(--text-2); }
+  .sec__k { margin-bottom: var(--s-5); }
+
+  .grid, .proj { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-6); }
+  /* Players sit in a column, capped so a lone track does not stretch the
+     full width of a wide archive page. Matches the Music page's spacing. */
+  .listen {
+    display: grid; gap: var(--s-4);
+    max-width: 44rem; margin-bottom: var(--s-8);
+  }
+  .grid { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 48rem) { .grid { grid-template-columns: repeat(3, 1fr); gap: var(--s-7); } }
+  @media (min-width: 72rem) { .grid { grid-template-columns: repeat(4, 1fr); } }
+  .proj { margin-bottom: var(--s-7); }
+  @media (min-width: 48rem) { .proj { grid-template-columns: repeat(2, 1fr); } }
+
+  .wrap :global(.empty) { max-width: 42rem; }
+  .empty__p { margin: var(--s-3) 0 0; font-size: var(--t-sm); color: var(--paper-ink); }
+  .slots { margin-top: var(--s-7); display: grid; gap: var(--s-3); }
+  .back { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+</style>

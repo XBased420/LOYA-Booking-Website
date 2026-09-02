@@ -1,0 +1,17 @@
+# Generated output — never real content.
+dist/
+site/dist/
+site/.astro/
+site/node_modules/
+node_modules/
+graphify-out/
+
+# Retired files kept for reference only. Graphing them resurrects dead copy
+# as if it were live, which is exactly the bug class we keep hitting.
+_retired/
+site/_retired/
+
+# Binary media and render intermediates.
+motion/out/
+motion/public/clips/
+site/public/media/

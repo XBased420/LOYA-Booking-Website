@@ -1,0 +1,61 @@
+---
+import Photo from "./Photo.astro";
+import Tape from "./Tape.astro";
+
+interface Props {
+  name: string; alt: string; caption?: string; rot?: number;
+  sizes?: string; tape?: boolean; class?: string;
+  loading?: "lazy" | "eager"; priority?: boolean;
+  /** Set false when an ancestor owns the hover transform — two elements
+   *  animating transform on the same pointer event fight each other. */
+  lift?: boolean;
+}
+const {
+  name, alt, caption, rot = -2, sizes, tape = true,
+  class: className = "", loading = "lazy", priority = false,
+  lift = true,
+} = Astro.props;
+---
+<figure class={`polaroid ${className}`} data-lift={lift ? "on" : "off"} style={`--rot:${rot}deg;`}>
+  {tape && <Tape x="26%" y="-11px" rot={rot > 0 ? -8 : 7} w="6.5rem" />}
+  <div class="polaroid__win">
+    <Photo name={name} alt={alt} sizes={sizes} loading={loading}
+           fetchpriority={priority ? "high" : "auto"} />
+    {/* Anything that should sit ON the photograph — never over the white
+        frame or the caption. The homepage corner-peel uses this. */}
+    <slot name="on-photo" />
+  </div>
+  {caption && <figcaption class="typewriter">{caption}</figcaption>}
+</figure>
+
+<style>
+  .polaroid {
+    position: relative; margin: 0;
+    background: var(--paper-100);
+    padding: 0.7rem 0.7rem 0;
+    box-shadow: var(--lift-2);
+    transform: rotate(var(--rot));
+    transition: transform var(--dur-2) var(--ease-paper),
+                box-shadow var(--dur-2) var(--ease-paper);
+  }
+  .polaroid__win {
+    background: var(--ground-0); overflow: hidden; aspect-ratio: 4 / 5;
+    /* positioning context for the `on-photo` slot, and the perspective the
+       homepage's lifted corner is projected in — it has to live on the
+       flap's own parent or the 3D rotation flattens. */
+    position: relative;
+    perspective: 1100px;
+    perspective-origin: 72% 72%;
+  }
+  .polaroid__win :global(picture),
+  .polaroid__win :global(img) { width: 100%; height: 100%; }
+  figcaption {
+    color: var(--paper-ink-soft); font-size: var(--t-xs);
+    padding: 0.7rem 0.2rem 0.9rem; line-height: 1.3;
+  }
+  .polaroid[data-lift="on"]:hover {
+    transform: rotate(calc(var(--rot) * .4)) translateY(-6px) scale(1.015);
+    box-shadow: var(--lift-3);
+  }
+  a:focus-visible .polaroid[data-lift="on"] { transform: rotate(0deg) translateY(-6px); }
+</style>

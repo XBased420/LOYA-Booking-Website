@@ -1,0 +1,48 @@
+---
+import { categories, mediaFor, projectsFor } from "../data/work";
+interface Props { current?: string; }
+const { current } = Astro.props;
+---
+<nav class="cats" aria-label="Archive categories">
+  <ul>
+    <li>
+      <a href="/archive" aria-current={!current ? "page" : undefined}>
+        <span class="cats__l">Everything</span>
+      </a>
+    </li>
+    {categories.map((c) => {
+      const n = mediaFor(c.slug).length + projectsFor(c.slug).length;
+      return (
+        <li>
+          <a href={`/archive/${c.slug}`}
+             aria-current={current === c.slug ? "page" : undefined}>
+            <span class="cats__l">{c.label}</span>
+            <span class="cats__n typewriter">{n}</span>
+          </a>
+        </li>
+      );
+    })}
+  </ul>
+</nav>
+
+<style>
+  .cats ul {
+    list-style: none; margin: 0; padding: 0;
+    display: flex; flex-wrap: wrap; gap: var(--s-2);
+  }
+  .cats a {
+    display: inline-flex; align-items: baseline; gap: var(--s-2);
+    padding: var(--s-2) var(--s-4); min-height: 44px;
+    text-decoration: none; color: var(--text-2);
+    border: 1px solid var(--rule-2);
+    transition: border-color var(--dur-1) var(--ease-paper),
+                color var(--dur-1) var(--ease-paper);
+  }
+  .cats a:hover { color: var(--text-1); border-color: var(--violet-deep); }
+  .cats a[aria-current="page"] {
+    background: var(--paper-100); color: var(--paper-ink);
+    border-color: var(--paper-100);
+  }
+  .cats__l { font-size: var(--t-sm); }
+  .cats__n { font-size: var(--t-xs); opacity: .7; }
+</style>

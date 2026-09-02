@@ -1,0 +1,227 @@
+---
+import Base from "../layouts/Base.astro";
+import Paper from "../components/Paper.astro";
+import Photo from "../components/Photo.astro";
+import { site, isPlaceholder, channelHref, contactChannels } from "../data/site";
+
+/** Channels come from site.contact; email, Instagram and TikTok are real,
+ *  LinkedIn is still a placeholder. Real values need a scheme on the href —
+ *  see channelHref in data/site.ts. Each renders as a
+ *  labelled slot rather than a dead mailto: or an invented handle. */
+const channels = contactChannels;
+
+const enquiries = [
+  { slug: "booking",       label: "Booking a session",  note: "Studio time, mixing, production." },
+  { slug: "event",         label: "An event",           note: "DJ or event booking." },
+  { slug: "collaboration", label: "Collaboration",      note: "Making something together." },
+  { slug: "media",         label: "Radio / media",      note: "Produced audio and broadcast." },
+  { slug: "other",         label: "Something else",     note: "Anything that does not fit above." },
+];
+---
+
+<Base
+  title="Contact"
+  description="Get in touch with Liz Loya — booking, collaboration, studio and general enquiries."
+>
+  <section class="ct-hero">
+    <Photo name="headphones-portrait" alt="" sizes="100vw" class="ct-hero__bg" loading="eager" fetchpriority="high" />
+    <div class="ct-hero__veil"></div>
+    <div class="wrap ct-hero__in">
+      <p class="kicker">Get in touch</p>
+      <h1 class="display ct-hero__h">Contact</h1>
+      <p class="ct-hero__lede">
+        For booking a studio session, use the booking form &mdash; it captures
+        what I need to know. For anything else, this is the place.
+      </p>
+      <a class="btn btn--primary" href="/book">Book a Session</a>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap ct__grid">
+      <!-- ─── FORM ──────────────────────────────────────────── -->
+      <Paper rot={-0.5} tone="cream" class="slip" tape={false}>
+        <div class="slip__head">
+          <span class="slip__ttl display">Say hello</span>
+          <span class="slip__no typewriter">GENERAL</span>
+        </div>
+
+        <form class="form" id="contact" method="post">
+          <fieldset class="fs">
+            <legend class="fs__lg typewriter">What is this about?</legend>
+            <div class="f">
+              <label class="f__l" for="topic">Enquiry type</label>
+              <select class="f__c" id="topic" name="topic" required>
+                <option value="">Choose one&hellip;</option>
+                {enquiries.map((e) => <option value={e.slug}>{e.label}</option>)}
+              </select>
+            </div>
+          </fieldset>
+
+          <fieldset class="fs">
+            <legend class="fs__lg typewriter">Who are you?</legend>
+            <div class="f">
+              <label class="f__l" for="cname">Name</label>
+              <input class="f__c" type="text" id="cname" name="name" autocomplete="name" required />
+            </div>
+            <div class="f">
+              <label class="f__l" for="cemail">Email</label>
+              <input class="f__c" type="email" id="cemail" name="email" autocomplete="email" required />
+            </div>
+          </fieldset>
+
+          <fieldset class="fs">
+            <legend class="fs__lg typewriter">Your message</legend>
+            <div class="f">
+              <label class="f__l" for="message">Message</label>
+              <textarea class="f__c f__ta" id="message" name="message" rows="6" required
+                        placeholder="What do you have in mind?"></textarea>
+            </div>
+          </fieldset>
+
+          <div class="act">
+            <button class="btn btn--primary" type="submit" id="creview">Review message</button>
+            <button class="btn btn--ghost" type="submit" id="csend" disabled aria-describedby="csend-note">
+              Send
+            </button>
+          </div>
+          <p class="act__note typewriter" id="csend-note">
+            Sending is off &mdash; this form has no destination wired up yet,
+            so a message would go nowhere. Email me directly at
+            {" "}<a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+            {" "}in the meantime. Review shows exactly what would be sent.
+          </p>
+
+          <output class="out" id="cout" hidden></output>
+        </form>
+      </Paper>
+
+      <!-- ─── CHANNELS ──────────────────────────────────────── -->
+      <aside class="side">
+        <p class="kicker">Direct</p>
+        <ul class="ch">
+          {channels.map((c) => (
+            <li class="ch__i">
+              <span class="ch__l typewriter">{c.label}</span>
+              {isPlaceholder(c.value)
+                ? <span class="ch__gap typewriter">[{c.value.__placeholder}]</span>
+                : <a
+                    class="ch__v"
+                    href={channelHref(c.key, String(c.value))}
+                    {...(c.key === "email" ? {} : { target: "_blank", rel: "me noopener noreferrer" })}
+                  >{String(c.value)}</a>}
+            </li>
+          ))}
+        </ul>
+
+        <Paper rot={1.2} tone="index" class="side__card">
+          <p class="kicker">Where to send what</p>
+          <ul class="side__l typewriter">
+            {enquiries.map((e) => (
+              <li><strong>{e.label}</strong> &mdash; {e.note}</li>
+            ))}
+          </ul>
+        </Paper>
+
+      </aside>
+    </div>
+  </section>
+</Base>
+
+<script>
+  function initContact() {
+  const form = document.getElementById("contact") as HTMLFormElement | null;
+  const out = document.getElementById("cout") as HTMLOutputElement | null;
+  if (form && out) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const d = new FormData(form);
+      const esc = (s: string) =>
+        s.replace(/[<>&]/g, (c) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] as string);
+      const rec = {
+        topic: d.get("topic"),
+        name: d.get("name"),
+        email: d.get("email"),
+        message: d.get("message"),
+      };
+      out.hidden = false;
+      out.innerHTML =
+        '<p class="out__h typewriter">This is exactly what would be sent:</p><dl class="out__dl">' +
+        Object.entries(rec)
+          .map(([k, v]) => `<dt>${k}</dt><dd>${esc(String(v ?? ""))}</dd>`)
+          .join("") +
+        '</dl><p class="out__n typewriter">Not sent — no contact address is configured.</p>';
+      out.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }
+  }
+  document.addEventListener("astro:page-load", initContact);
+</script>
+
+<style>
+  .ct-hero { position: relative; overflow: hidden; padding-block: var(--s-8); }
+  .ct-hero :global(.ct-hero__bg) { position: absolute; inset: 0; }
+  .ct-hero :global(.ct-hero__bg img) { width: 100%; height: 100%; object-fit: cover; }
+  .ct-hero__veil { position: absolute; inset: 0; background: rgba(253,249,248,.88); }
+  .ct-hero__in { position: relative; }
+  .ct-hero__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-3); }
+  .ct-hero__lede { color: var(--text-2); max-width: 38rem; margin-bottom: var(--s-5); }
+
+  .ct__grid { display: grid; gap: var(--s-7); align-items: start; }
+  @media (min-width: 64rem) { .ct__grid { grid-template-columns: 1.35fr .8fr; gap: var(--s-8); } }
+  .ct__grid :global(.slip) { max-width: 44rem; }
+
+  .slip__head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    gap: var(--s-4); padding-bottom: var(--s-3);
+    border-bottom: 2px solid var(--paper-ink); margin-bottom: var(--s-5);
+  }
+  .slip__ttl { font-size: var(--t-lg); color: var(--paper-ink); }
+  .slip__no { font-size: var(--t-xs); color: var(--paper-ink-soft); letter-spacing: .16em; }
+
+  .form { display: grid; gap: var(--s-6); }
+  .fs { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+  .fs__lg {
+    font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase;
+    color: var(--paper-ink-soft); padding: 0; margin-bottom: var(--s-2);
+  }
+  .f { display: grid; gap: var(--s-2); }
+  .f__l { font-family: var(--font-type); font-size: var(--t-xs); letter-spacing: .12em; text-transform: uppercase; color: var(--paper-ink); }
+  .f__c {
+    font-family: var(--font-sans); font-size: var(--t-base); color: var(--paper-ink);
+    background: transparent; border: 0; border-bottom: 1.5px solid var(--paper-ink-soft);
+    padding: var(--s-2) var(--s-1); min-height: 44px; width: 100%;
+  }
+  .f__c:focus-visible { outline: 3px solid var(--violet); outline-offset: 2px; background: rgba(111,79,242,.06); }
+  /* Not colour alone — WCAG 1.4.1. The border also thickens and the field
+     tints, so the state survives colour-blindness and greyscale. */
+  .f__c:user-invalid {
+    border-bottom-color: #b4232a;
+    border-bottom-width: 3px;
+    background-color: #fdf0f0;
+  }
+  .f__ta { min-height: 9rem; resize: vertical; line-height: 1.5; }
+
+  .act { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+  .act .btn--ghost { color: var(--paper-ink); border-color: var(--paper-ink-soft); }
+  .act .btn--ghost[disabled] { opacity: .45; cursor: not-allowed; }
+  .act__note { margin: 0; font-size: var(--t-xs); color: var(--paper-ink-soft); max-width: 38rem; line-height: 1.5; }
+
+  .out { display: block; border-top: 1.5px dashed var(--paper-ink-soft); padding-top: var(--s-4); }
+  .out :global(.out__h) { margin: 0 0 var(--s-3); font-size: var(--t-xs); letter-spacing: .14em; color: var(--paper-ink); }
+  .out :global(.out__dl) { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--s-2) var(--s-4); font-family: var(--font-type); font-size: var(--t-xs); }
+  .out :global(dt) { color: var(--paper-ink-soft); }
+  .out :global(dd) { margin: 0; color: var(--paper-ink); overflow-wrap: anywhere; }
+  .out :global(.out__n) { margin: var(--s-4) 0 0; font-size: var(--t-xs); color: #8a5a00; font-weight: 700; }
+
+  .side { display: grid; gap: var(--s-5); }
+  .ch { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
+  .ch__i {
+    display: flex; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap;
+    padding-bottom: var(--s-3); border-bottom: 1px solid var(--rule-1);
+  }
+  .ch__l { font-size: var(--t-sm); color: var(--text-1); letter-spacing: .1em; }
+  .ch__gap { font-size: var(--t-xs); color: var(--pink-deep); }
+  .ch__v { font-size: var(--t-sm); color: var(--violet-deep); }
+  .side__l { list-style: none; margin: var(--s-3) 0 0; padding: 0; display: grid; gap: var(--s-2); font-size: var(--t-xs); color: var(--paper-ink); line-height: 1.5; }
+</style>

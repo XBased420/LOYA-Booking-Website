@@ -1,0 +1,270 @@
+---
+/* ═══════════════════════════════════════════════════════════════
+   SOUND FIELD — the site's animated background.
+
+   Chosen from the five background studies (2026-08-31): "The Analyzer".
+   One soft column per frequency band rising off the bottom edge, warm at
+   the bass end and violet at the top, blurred into colour rather than
+   drawn as bars.
+
+   Two things about how this is built, both deliberate:
+
+   1. IT IS FIXED TO THE VIEWPORT, NOT TO THE PAGE.
+      The columns are anchored to the bottom of the screen. Anchoring them
+      to the bottom of the document would put them below the fold on every
+      page longer than one screen — which is every page here.
+
+   2. IT READS A SIGNAL, NOT A CLOCK.
+      Every value it draws comes from one `sig` object: 32 bands, overall
+      level, and a raw waveform. Right now that signal is a slow synthetic
+      breath, so the page is alive with no audio anywhere on the site.
+      When music goes on the site, call
+
+          window.LoyaSound.listenTo(document.querySelector("audio"))
+
+      once, from a click handler, and the same object is filled by a real
+      Web Audio AnalyserNode instead. Nothing in the drawing changes.
+
+   The canvas sits at z-index -1, above the page background and below all
+   content, which is why global.css moves the ground colour onto <html>
+   and leaves <body> transparent. No element needs a z-index because of
+   this file.
+   ═══════════════════════════════════════════════════════════════ */
+---
+
+<canvas id="soundfield" transition:persist aria-hidden="true"></canvas>
+
+<style>
+  #soundfield {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    display: block;
+  }
+</style>
+
+<script>
+  (() => {
+    const BANDS = 32;
+
+    /* Live music needs its own calibration, and this is where it was wrong.
+       The band tilt below was tuned against a synthetic demo loop that had
+       almost no energy above 5 kHz. Point the same code at a real mastered
+       track and every band pegs at the ceiling — measured 0.90 mean against
+       an idle mean of 0.117, with the top twelve bands fully clipped. The
+       background stops being a spectrum and becomes a wall of pink.
+
+       The fix is two parts: open the analyser's dB window so loud bands
+       have headroom and quiet ones have somewhere to fall, and drop the
+       tilt entirely — a real track does not need help at the top end.
+       LIVE_GAIN then places playing music at roughly twice the resting
+       height. Measured after: 0.05–0.20 mean, 0.29–0.42 peaks, 31 of 32
+       bands moving. Present, not overwhelming.
+
+       Re-check these three numbers against her actual track if the master
+       ever changes loudness. */
+    const LIVE_GAIN = 1.25;
+    const LIVE_MIN_DB = -62;
+    const LIVE_MAX_DB = -12;
+
+    /* The one signal every frame is drawn from. */
+    const sig = {
+      level: 0,
+      bands: new Float32Array(BANDS),
+      wave: new Float32Array(256),
+      live: false,
+    };
+
+    let cv: HTMLCanvasElement | null = null;
+    let ctx: CanvasRenderingContext2D | null = null;
+    let W = 0, H = 0, DPR = 1, raf = 0, started = false;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
+
+    /* ── the live source, dormant until something calls listenTo ────── */
+    let actx: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let freqData: Uint8Array | null = null;
+    let timeData: Uint8Array | null = null;
+
+    const LoyaSound = {
+      /* Point the background at an <audio> or <video> element. Must be
+         called from a user gesture (browsers will not start an
+         AudioContext otherwise), and the media must be same-origin or
+         CORS-clean or the analyser reads silence. */
+      listenTo(el: HTMLMediaElement) {
+        if (!el) return false;
+        const Ctor = window.AudioContext || (window as any).webkitAudioContext;
+        if (!Ctor) return false;
+        if (!actx) {
+          actx = new Ctor();
+          analyser = actx.createAnalyser();
+          analyser.fftSize = 2048;
+          analyser.smoothingTimeConstant = 0.78;
+          analyser.minDecibels = LIVE_MIN_DB;
+          analyser.maxDecibels = LIVE_MAX_DB;
+          freqData = new Uint8Array(analyser.frequencyBinCount);
+          timeData = new Uint8Array(analyser.fftSize);
+          analyser.connect(actx.destination);
+        }
+        try {
+          actx.createMediaElementSource(el).connect(analyser!);
+        } catch {
+          /* Already connected to a source. Harmless — keep listening. */
+        }
+        actx.resume();
+        sig.live = true;
+        return true;
+      },
+      stop() {
+        sig.live = false;
+        actx?.suspend();
+      },
+      get signal() { return sig; },
+    };
+    (window as any).LoyaSound = LoyaSound;
+
+    /* ── reading ────────────────────────────────────────────────────── */
+    function readLive() {
+      if (!analyser || !freqData || !timeData) return;
+      analyser.getByteFrequencyData(freqData);
+      analyser.getByteTimeDomainData(timeData);
+
+      /* Log-spaced bands. No tilt — see LIVE_GAIN above for why. */
+      const top = Math.min(freqData.length, 480);
+      for (let i = 0; i < BANDS; i++) {
+        const a = Math.floor(Math.pow(i / BANDS, 1.6) * top) + 1;
+        const b = Math.max(a + 1, Math.floor(Math.pow((i + 1) / BANDS, 1.6) * top));
+        let sum = 0;
+        for (let k = a; k < b; k++) sum += freqData[k];
+        const v = Math.min(1, (sum / (b - a)) / 255 * LIVE_GAIN);
+        sig.bands[i] += (v - sig.bands[i]) * 0.35;
+      }
+      let sq = 0;
+      for (let i = 0; i < sig.wave.length; i++) {
+        const v = (timeData[i * 4] - 128) / 128;
+        sig.wave[i] = v;
+        sq += v * v;
+      }
+      sig.level += (Math.min(1, Math.sqrt(sq / sig.wave.length) * 3.2) - sig.level) * 0.3;
+    }
+
+    /* Silence still moves — slowly, and never in a loop short enough to
+       spot. Three sines at unrelated periods per band, over a falling
+       slope: without the slope every band sits at the same height and the
+       whole thing reads as a solid stripe across the bottom of the screen
+       rather than as a spectrum. Real music falls off toward the top end,
+       so the resting shape should too. */
+    function readIdle(t: number) {
+      for (let i = 0; i < BANDS; i++) {
+        const f = i / BANDS;
+        const slope = Math.pow(1 - f, 1.25) * 0.9 + 0.1;
+        const wob =
+          0.55 +
+          0.30 * Math.sin(t * 0.00055 + i * 0.55) +
+          0.22 * Math.sin(t * 0.00019 - i * 0.31) +
+          0.14 * Math.sin(t * 0.00103 + i * 1.9);
+        const v = Math.max(0, slope * wob) * 0.42;
+        sig.bands[i] += (v - sig.bands[i]) * 0.08;
+      }
+      sig.level += ((0.11 + 0.045 * Math.sin(t * 0.0004)) - sig.level) * 0.05;
+    }
+
+    /* ── drawing ────────────────────────────────────────────────────── */
+    function paint() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, W, H);          // the page's own ground shows through
+      const bw = W / BANDS;
+      const ceiling = H * 0.55;           // never reaches the middle of the screen
+      for (let i = 0; i < BANDS; i++) {
+        const v = sig.bands[i];
+        const h = Math.min((0.05 + 0.42 * v) * H, ceiling);
+        const cx = (i + 0.5) * bw;
+        const up = i / BANDS;                       // warm at the bass end
+        const r = Math.round(212 - 128 * up);
+        const g2 = Math.round(72 - 21 * up);
+        const b = Math.round(143 + 64 * up);
+        const rgb = `${r},${g2},${b}`;
+        const a = Math.min(0.09 + 0.13 * v, 1);
+
+        const g = ctx.createLinearGradient(0, H - h, 0, H);
+        g.addColorStop(0, `rgba(${rgb},0)`);
+        g.addColorStop(0.42, `rgba(${rgb},${(a * 0.45).toFixed(4)})`);
+        g.addColorStop(1, `rgba(${rgb},${a.toFixed(4)})`);
+        ctx.fillStyle = g;
+        ctx.fillRect(cx - bw * 0.95, H - h, bw * 1.9, h);
+
+        /* A soft cap, so the shape of the spectrum is readable and not
+           just a glow along the bottom edge. */
+        const cap = ctx.createLinearGradient(0, H - h - 10, 0, H - h + 14);
+        cap.addColorStop(0, `rgba(${rgb},0)`);
+        cap.addColorStop(0.5, `rgba(${rgb},${Math.min(a * 1.5, 1).toFixed(4)})`);
+        cap.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.fillStyle = cap;
+        ctx.fillRect(cx - bw * 0.7, H - h - 10, bw * 1.4, 24);
+      }
+    }
+
+    function resize() {
+      if (!cv || !ctx) return;
+      const r = cv.getBoundingClientRect();
+      DPR = Math.min(devicePixelRatio || 1, 2);
+      W = Math.max(1, Math.round(r.width));
+      H = Math.max(1, Math.round(r.height));
+      cv.width = W * DPR;
+      cv.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      paint();
+    }
+
+    function frame(now: number) {
+      raf = 0;
+      if (!cv || !cv.isConnected) return;       // navigated away from this node
+      if (sig.live) readLive(); else readIdle(now);
+      paint();
+      raf = requestAnimationFrame(frame);
+    }
+
+    function run() {
+      if (raf || document.hidden) return;
+      raf = requestAnimationFrame(frame);
+    }
+    function halt() {
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
+    }
+
+    /* Re-acquire the canvas after a client-side navigation. transition:persist
+       normally keeps the same node, but if anything ever replaces it this
+       picks the new one up rather than drawing into a detached canvas. */
+    function attach() {
+      const el = document.getElementById("soundfield") as HTMLCanvasElement | null;
+      if (!el) { halt(); return; }
+      if (el !== cv) {
+        cv = el;
+        ctx = cv.getContext("2d");
+        resize();
+      }
+      if (reduce.matches) {
+        halt();
+        readIdle(0);
+        paint();                     // one still frame, no animation
+      } else {
+        run();
+      }
+    }
+
+    if (!started) {
+      started = true;
+      addEventListener("resize", resize, { passive: true });
+      document.addEventListener("visibilitychange", () => {
+        if (document.hidden) halt(); else attach();
+      });
+      reduce.addEventListener("change", attach);
+      document.addEventListener("astro:page-load", attach);
+      attach();
+    }
+  })();
+</script>
