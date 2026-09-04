@@ -380,7 +380,10 @@ const intakeKindFor = Object.fromEntries(
 
   .bk__grid { display: grid; gap: var(--s-7); align-items: start; }
   @media (min-width: 64rem) {
-    .bk__grid { grid-template-columns: 1.4fr 0.75fr; gap: var(--s-8); }
+    /* minmax(0, …) not plain fr: a grid track defaults to min-width:auto,
+       so any wide child (the calendar's day strip) pushes the column past
+       its share and out under the next one instead of scrolling. */
+    .bk__grid { grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.75fr); gap: var(--s-8); }
   }
 
   /* THE SLIP */
@@ -423,8 +426,11 @@ const intakeKindFor = Object.fromEntries(
   }
   .side__fallback a { color: var(--pink-deep); }
 
-  .form { display: grid; gap: var(--s-6); }
-  .fs { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-4); }
+  /* min-width:0 all the way down, same reason as the grid tracks above:
+     without it every one of these grid items refuses to shrink below its
+     widest child and the overflow never reaches the element that scrolls. */
+  .form { display: grid; gap: var(--s-6); min-width: 0; }
+  .fs { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-4); min-width: 0; }
   .fs__lg {
     font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase;
     color: var(--paper-ink-soft); padding: 0; margin-bottom: var(--s-2);

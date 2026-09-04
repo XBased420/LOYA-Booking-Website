@@ -39,6 +39,10 @@
     padding: .9rem 1rem 1rem;
     margin: 0 0 1.1rem;
     background: rgba(0,0,0,.02);
+    /* Both required. Without them the day strip sets this box's width and
+       it grows out from under the form instead of scrolling inside it. */
+    min-width: 0;
+    max-width: 100%;
   }
   .cal__head {
     display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
@@ -51,8 +55,14 @@
 
   .cal__days {
     display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .45rem;
-    scrollbar-width: thin;
+    scrollbar-width: thin; min-width: 0;
+    /* Fade the right edge so it reads as "there is more", since a thin
+       scrollbar on Windows is easy to miss entirely. */
+    -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+            mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
   }
+  .cal__days::-webkit-scrollbar { height: 6px; }
+  .cal__days::-webkit-scrollbar-thumb { background: var(--line-2, rgba(0,0,0,.28)); }
   .cal__day {
     flex: 0 0 auto; min-width: 3.9rem; padding: .4rem .55rem;
     border: 1px solid var(--line, rgba(0,0,0,.18)); background: transparent;
@@ -69,7 +79,7 @@
   .cal__day[aria-selected="true"] small { color: var(--paper, #faf7f5); mix-blend-mode: normal; }
 
   .cal__slots {
-    display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem;
+    display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem; min-width: 0;
   }
   .cal__slot {
     padding: .35rem .6rem; border: 1px solid var(--line, rgba(0,0,0,.18));
