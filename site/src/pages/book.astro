@@ -24,16 +24,23 @@ const intakeKindFor = Object.fromEntries(
   description="Book studio time with Liz Loya — recording, mixing, production, or DJ and event bookings in Dallas."
   ogImage="/media/img/console-standing-1200.jpg"
 >
+  {/* The photo used to be a full-bleed background under a 88% white veil:
+      a whole screen of washed-out image before anyone reached the form.
+      Now it is a normal picture sitting beside the heading — visible as a
+      photograph rather than as wallpaper, and a third of the height. */}
   <section class="bk-hero">
-    <Photo name="console-moody" alt="" sizes="100vw" class="bk-hero__bg" loading="eager" fetchpriority="high" />
-    <div class="bk-hero__veil"></div>
     <div class="wrap bk-hero__in">
-      <p class="kicker">Booking</p>
-      <h1 class="display bk-hero__h">Book a session</h1>
-      <p class="bk-hero__lede">
-        Recording, mixing, production, or a set for your event.
-        Fill this in and I'll come back to you.
-      </p>
+      <div class="bk-hero__txt">
+        <p class="kicker">Booking</p>
+        <h1 class="display bk-hero__h">Book a session</h1>
+        <p class="bk-hero__lede">
+          Recording, mixing, production, or a set for your event.
+          Fill this in and I'll come back to you.
+        </p>
+      </div>
+      <figure class="bk-hero__shot">
+        <Photo name="console-moody" alt="Liz at the console" sizes="(min-width: 60rem) 24rem, 88vw" loading="eager" fetchpriority="high" />
+      </figure>
     </div>
   </section>
 
@@ -109,7 +116,7 @@ const intakeKindFor = Object.fromEntries(
             </div>
 
             <p class="f__hint typewriter" id="avail-note">
-              {availability.closedNote} {leadTime.label.studio} {leadTime.label.event}
+              {availability.closedNote} {leadTime.label.studio} {leadTime.label.event}{" "}
               Recording and consult calls show her real openings above.
               Everything else I confirm by hand.
             </p>
@@ -368,15 +375,34 @@ const intakeKindFor = Object.fromEntries(
 </script>
 
 <style>
-  .bk-hero { position: relative; overflow: hidden; padding-block: var(--s-8); }
-  .bk-hero :global(.bk-hero__bg) { position: absolute; inset: 0; }
-  .bk-hero :global(.bk-hero__bg img) { width: 100%; height: 100%; object-fit: cover; }
-  /* Light ground now, so the veil lightens the photo instead of
-     darkening it — the shot stays as texture behind dark type. */
-  .bk-hero__veil { position: absolute; inset: 0; background: rgba(253,249,248,.88); }
-  .bk-hero__in { position: relative; }
+  .bk-hero { padding-block: var(--s-6) var(--s-5); }
+  .bk-hero__in {
+    display: grid; gap: var(--s-5); align-items: center;
+  }
+  @media (min-width: 60rem) {
+    /* Text takes the room it needs; the photo is a fixed, modest 24rem
+       so it can never grow into a hero again. */
+    .bk-hero__in { grid-template-columns: minmax(0, 1fr) 24rem; gap: var(--s-7); }
+  }
+  .bk-hero__txt { min-width: 0; }
   .bk-hero__h { font-size: var(--t-2xl); margin-block: var(--s-2) var(--s-3); }
-  .bk-hero__lede { color: var(--text-2); max-width: 38rem; }
+  .bk-hero__lede { color: var(--text-2); max-width: 34rem; margin: 0; }
+
+  .bk-hero__shot {
+    margin: 0; justify-self: start; min-width: 0;
+    /* Sits like something taped into the scrapbook rather than a banner. */
+    border: 1px solid var(--line, rgba(0,0,0,.15));
+    padding: .5rem .5rem 1.6rem;
+    background: var(--paper, #fdf9f8);
+    box-shadow: 0 1px 0 rgba(0,0,0,.05), 0 12px 26px -18px rgba(0,0,0,.5);
+    transform: rotate(-1.1deg);
+  }
+  @media (min-width: 60rem) { .bk-hero__shot { justify-self: end; } }
+  .bk-hero__shot :global(img) {
+    display: block; width: 100%; height: auto;
+    aspect-ratio: 4 / 3; object-fit: cover;
+  }
+  @media (prefers-reduced-motion: reduce) { .bk-hero__shot { transform: none; } }
 
   .bk__grid { display: grid; gap: var(--s-7); align-items: start; }
   @media (min-width: 64rem) {
@@ -398,8 +424,8 @@ const intakeKindFor = Object.fromEntries(
   .slip__no { font-size: var(--t-xs); color: var(--paper-ink-soft); letter-spacing: .16em; }
 
   .rates {
-    list-style: none; margin: var(--s-3) 0 0; padding: 0;
-    display: grid; gap: var(--s-2); font-size: var(--t-xs);
+    list-style: none; margin: var(--s-2) 0 0; padding: 0;
+    display: grid; gap: var(--s-1); font-size: var(--t-xs);
     color: var(--paper-ink-soft);
   }
   .rates li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s-2); }
