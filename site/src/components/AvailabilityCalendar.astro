@@ -52,6 +52,9 @@
   .cal__tz  { margin-left: auto; font-size: .68rem; opacity: .62; letter-spacing: .05em; }
   .cal__msg { font-size: .82rem; opacity: .75; margin: .2rem 0 0; }
   .cal__msg[hidden] { display: none !important; }
+  /* Belt and braces after the .fs bug: if anyone later gives these a
+     display, the attribute keeps winning instead of silently losing. */
+  .cal[hidden], .cal__note[hidden] { display: none !important; }
 
   .cal__days {
     display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .45rem;

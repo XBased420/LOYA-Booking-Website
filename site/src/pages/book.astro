@@ -457,6 +457,15 @@ const intakeKindFor = Object.fromEntries(
      widest child and the overflow never reaches the element that scrolls. */
   .form { display: grid; gap: var(--s-6); min-width: 0; }
   .fs { border: 0; margin: 0; padding: 0; display: grid; gap: var(--s-4); min-width: 0; }
+  /* ═══ REAL BUG, FOUND ON THE LIVE SITE 2026-09-04 ═══
+     `hidden` works by a USER-AGENT rule, [hidden] { display: none }, and
+     any AUTHOR rule that sets display beats it. `.fs { display: grid }`
+     above was doing exactly that, so BOTH intake sets rendered at once no
+     matter what the script set — an artist booking a mix was being asked
+     for a venue and a guest count. Same for `.out { display: block }`,
+     which meant the "here is what would be sent" preview showed on load.
+     Setting the attribute in JS was never enough; the CSS has to yield. */
+  .fs[hidden], .out[hidden] { display: none; }
   .fs__lg {
     font-size: var(--t-xs); letter-spacing: .2em; text-transform: uppercase;
     color: var(--paper-ink-soft); padding: 0; margin-bottom: var(--s-2);

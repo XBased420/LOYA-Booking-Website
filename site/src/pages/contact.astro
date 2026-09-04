@@ -208,6 +208,9 @@ const enquiries = [
   .act__note { margin: 0; font-size: var(--t-xs); color: var(--paper-ink-soft); max-width: 38rem; line-height: 1.5; }
 
   .out { display: block; border-top: 1.5px dashed var(--paper-ink-soft); padding-top: var(--s-4); }
+  /* Same trap as book.astro: an author display rule beats the UA's
+     [hidden] { display: none }, so the preview showed before submit. */
+  .out[hidden] { display: none; }
   .out :global(.out__h) { margin: 0 0 var(--s-3); font-size: var(--t-xs); letter-spacing: .14em; color: var(--paper-ink); }
   .out :global(.out__dl) { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: var(--s-2) var(--s-4); font-family: var(--font-type); font-size: var(--t-xs); }
   .out :global(dt) { color: var(--paper-ink-soft); }
