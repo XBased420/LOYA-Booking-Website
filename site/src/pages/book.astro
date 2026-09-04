@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import Paper from "../components/Paper.astro";
 import Photo from "../components/Photo.astro";
 import Slot from "../components/Slot.astro";
+import AvailabilityCalendar from "../components/AvailabilityCalendar.astro";
 import {
   bookableServices, availabilityKnown, availability, bookingEndpoint,
   rateLines, deposit, paymentMethods, cancellationPolicy, leadTime,
@@ -88,6 +89,12 @@ const intakeKindFor = Object.fromEntries(
           <fieldset class="fs">
             <legend class="fs__lg typewriter">2 &mdash; When?</legend>
 
+            {/* Phase 2: real openings, read straight from the database.
+                Only appears for the services she takes straight through;
+                for everything else the plain fields below are the request.
+                With JS off it never renders and the fields still work. */}
+            <AvailabilityCalendar />
+
             <div class="f2">
               <div class="f">
                 <label class="f__l" for="date">Preferred date</label>
@@ -103,7 +110,8 @@ const intakeKindFor = Object.fromEntries(
 
             <p class="f__hint typewriter" id="avail-note">
               {availability.closedNote} {leadTime.label.studio} {leadTime.label.event}
-              I confirm every request &mdash; this is not a live calendar yet.
+              Recording and consult calls show her real openings above.
+              Everything else I confirm by hand.
             </p>
           </fieldset>
 

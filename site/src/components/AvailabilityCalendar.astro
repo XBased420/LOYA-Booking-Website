@@ -1,0 +1,263 @@
+---
+/* ═══════════════════════════════════════════════════════════════
+   Live availability.  Phase 2 — read only.
+
+   Shows real open slots for the two services Liz takes straight
+   through (recording, consult).  Everything else stays a request she
+   answers by hand, so this stays hidden for those and the plain date
+   and time fields do their old job.
+
+   Nothing here can write.  Picking a slot only fills in the two
+   fields that were already on the form.
+   ═══════════════════════════════════════════════════════════════ */
+---
+
+<div class="cal" id="cal" hidden>
+  <div class="cal__head">
+    <span class="cal__ttl typewriter">Open times</span>
+    <span class="cal__tz typewriter">All times Dallas (CT)</span>
+  </div>
+
+  {/* One live region for every state, so a screen reader hears the
+      calendar load, fail or come back empty without hunting for it. */}
+  <p class="cal__msg typewriter" id="cal-msg" role="status" aria-live="polite">
+    Loading her calendar&hellip;
+  </p>
+
+  <div class="cal__days" id="cal-days" role="tablist" aria-label="Days with openings"></div>
+  <div class="cal__slots" id="cal-slots" role="tabpanel" aria-label="Times"></div>
+
+  <p class="cal__note typewriter" id="cal-note" hidden>
+    Picked a time? It drops into the fields below. Nothing is booked until
+    you send the request.
+  </p>
+</div>
+
+<style>
+  .cal {
+    border: 1px solid var(--line, rgba(0,0,0,.18));
+    padding: .9rem 1rem 1rem;
+    margin: 0 0 1.1rem;
+    background: rgba(0,0,0,.02);
+  }
+  .cal__head {
+    display: flex; align-items: baseline; gap: .6rem; flex-wrap: wrap;
+    margin-bottom: .55rem;
+  }
+  .cal__ttl { font-weight: 700; font-size: .95rem; }
+  .cal__tz  { margin-left: auto; font-size: .68rem; opacity: .62; letter-spacing: .05em; }
+  .cal__msg { font-size: .82rem; opacity: .75; margin: .2rem 0 0; }
+  .cal__msg[hidden] { display: none !important; }
+
+  .cal__days {
+    display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .45rem;
+    scrollbar-width: thin;
+  }
+  .cal__day {
+    flex: 0 0 auto; min-width: 3.9rem; padding: .4rem .55rem;
+    border: 1px solid var(--line, rgba(0,0,0,.18)); background: transparent;
+    font: inherit; font-size: .72rem; line-height: 1.25; text-align: center;
+    cursor: pointer; color: inherit;
+  }
+  .cal__day b { display: block; font-size: .95rem; }
+  .cal__day small { display: block; opacity: .6; font-size: .62rem; letter-spacing: .04em; }
+  .cal__day[aria-selected="true"] {
+    background: currentColor;
+    border-color: currentColor;
+  }
+  .cal__day[aria-selected="true"] b,
+  .cal__day[aria-selected="true"] small { color: var(--paper, #faf7f5); mix-blend-mode: normal; }
+
+  .cal__slots {
+    display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .7rem;
+  }
+  .cal__slot {
+    padding: .35rem .6rem; border: 1px solid var(--line, rgba(0,0,0,.18));
+    background: transparent; font: inherit; font-size: .78rem; cursor: pointer;
+    color: inherit; font-variant-numeric: tabular-nums;
+  }
+  .cal__slot[aria-pressed="true"] { background: currentColor; }
+  .cal__slot[aria-pressed="true"] span { color: var(--paper, #faf7f5); }
+
+  .cal__day:focus-visible, .cal__slot:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+  .cal__note { font-size: .74rem; opacity: .7; margin: .7rem 0 0; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cal__slot, .cal__day { transition: background-color .12s ease; }
+  }
+</style>
+
+<script>
+  import {
+    fetchServices, fetchAvailability, fetchBusy, configured, STUDIO_TZ,
+  } from "../lib/booking-api";
+  import { openSlots, groupByDay, zonedParts } from "../lib/slots";
+  import type { Service, AvailabilityRow } from "../lib/booking-api";
+
+  /* How far ahead to offer, and how finely. Both are display choices —
+     the database does not care and will accept any instant that does not
+     clash. Change freely. */
+  const DAYS_AHEAD = 21;
+  const STEP_MIN = 60;
+
+  function initCalendar() {
+    const cal = document.getElementById("cal");
+    const msg = document.getElementById("cal-msg");
+    const daysEl = document.getElementById("cal-days");
+    const slotsEl = document.getElementById("cal-slots");
+    const note = document.getElementById("cal-note");
+    const svc = document.getElementById("service") as HTMLSelectElement | null;
+    const dateEl = document.getElementById("date") as HTMLInputElement | null;
+    const timeEl = document.getElementById("time") as HTMLInputElement | null;
+    if (!cal || !msg || !daysEl || !slotsEl || !svc || !dateEl || !timeEl) return;
+
+    /* Fetched once and reused. A visitor flicking between services should
+       not re-hit the network each time. */
+    let services: Service[] | null = null;
+    let rules: AvailabilityRow[] | null = null;
+    let busy: { start: number; end: number }[] | null = null;
+    let loading = false;
+    let token = 0;               // guards against out-of-order responses
+
+    const say = (t: string) => { msg.textContent = t; msg.hidden = false; };
+
+    const dayFmt = new Intl.DateTimeFormat("en-US",
+      { timeZone: STUDIO_TZ, weekday: "short" });
+    const numFmt = new Intl.DateTimeFormat("en-US",
+      { timeZone: STUDIO_TZ, day: "numeric" });
+    const monFmt = new Intl.DateTimeFormat("en-US",
+      { timeZone: STUDIO_TZ, month: "short" });
+    const timeFmt = new Intl.DateTimeFormat("en-US",
+      { timeZone: STUDIO_TZ, hour: "numeric", minute: "2-digit" });
+
+    async function load() {
+      if (services && rules && busy) return;
+      loading = true;
+      const from = new Date();
+      const to = new Date(Date.now() + DAYS_AHEAD * 86_400_000);
+      [services, rules, busy] = await Promise.all([
+        fetchServices(), fetchAvailability(), fetchBusy(from, to),
+      ]);
+      loading = false;
+    }
+
+    function pick(startMs: number, btn: HTMLElement) {
+      const [y, mo, d] = zonedParts(startMs, STUDIO_TZ);
+      /* Write HER local date and time into the existing fields. Building
+         the string by hand rather than via toISOString(), which is UTC and
+         would move an evening slot onto the next day. */
+      dateEl.value = `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+      timeEl.value = new Intl.DateTimeFormat("en-GB", {
+        timeZone: STUDIO_TZ, hour: "2-digit", minute: "2-digit", hour12: false,
+      }).format(new Date(startMs));
+
+      /* Let anything else listening (native validation, future code) know
+         these changed — setting .value alone fires no event. */
+      dateEl.dispatchEvent(new Event("change", { bubbles: true }));
+      timeEl.dispatchEvent(new Event("change", { bubbles: true }));
+
+      slotsEl.querySelectorAll("[aria-pressed]").forEach((b) =>
+        b.setAttribute("aria-pressed", "false"));
+      btn.setAttribute("aria-pressed", "true");
+      if (note) note.hidden = false;
+    }
+
+    function renderDay(key: string, times: number[]) {
+      slotsEl.replaceChildren();
+      for (const t of times) {
+        const b = document.createElement("button");
+        b.type = "button";                    // never submit the form
+        b.className = "cal__slot";
+        b.setAttribute("aria-pressed", "false");
+        const s = document.createElement("span");
+        s.textContent = timeFmt.format(new Date(t));
+        b.append(s);
+        b.addEventListener("click", () => pick(t, b));
+        slotsEl.append(b);
+      }
+    }
+
+    function render(grouped: Map<string, number[]>) {
+      daysEl.replaceChildren();
+      slotsEl.replaceChildren();
+
+      const keys = [...grouped.keys()];
+      if (!keys.length) {
+        say("Nothing open in the next three weeks. Send a request below and she'll find you a time.");
+        return;
+      }
+      msg.hidden = true;
+
+      keys.forEach((key, i) => {
+        const first = grouped.get(key)![0];
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "cal__day";
+        b.setAttribute("role", "tab");
+        b.setAttribute("aria-selected", i === 0 ? "true" : "false");
+        b.innerHTML =
+          `<small>${dayFmt.format(new Date(first))}</small>` +
+          `<b>${numFmt.format(new Date(first))}</b>` +
+          `<small>${monFmt.format(new Date(first))}</small>`;
+        b.addEventListener("click", () => {
+          daysEl.querySelectorAll("[aria-selected]").forEach((d) =>
+            d.setAttribute("aria-selected", "false"));
+          b.setAttribute("aria-selected", "true");
+          renderDay(key, grouped.get(key)!);
+        });
+        daysEl.append(b);
+      });
+
+      renderDay(keys[0], grouped.get(keys[0])!);
+    }
+
+    async function apply() {
+      const slug = svc!.value;
+      const mine = ++token;
+
+      if (!configured()) {
+        cal.hidden = true;                   // keys not pasted in yet
+        return;
+      }
+
+      /* Only the direct-booking services get a calendar. Mixing, DJ work
+         and the rest are requests she replies to, so they keep the plain
+         date and time fields and this stays out of the way. */
+      if (!slug) { cal.hidden = true; return; }
+
+      cal.hidden = false;
+      say("Loading her calendar…");
+
+      try {
+        await load();
+      } catch (err) {
+        console.error("[booking] availability fetch failed", err);
+        say("Couldn't load the live calendar. Pick any date and time below and she'll confirm.");
+        daysEl.replaceChildren(); slotsEl.replaceChildren();
+        return;
+      }
+      if (mine !== token) return;            // a newer selection won
+
+      const service = services!.find((s) => s.slug === slug);
+      if (!service || !service.direct) { cal.hidden = true; return; }
+
+      const grouped = groupByDay(openSlots({
+        rules: rules!,
+        busy: busy!,
+        durationMin: service.min_minutes ?? 60,
+        stepMin: STEP_MIN,
+        leadHours: service.lead_time_hours,
+        days: DAYS_AHEAD,
+        now: Date.now(),
+        tz: STUDIO_TZ,
+      }), STUDIO_TZ);
+
+      render(grouped);
+    }
+
+    svc.addEventListener("change", apply);
+    apply();
+  }
+
+  document.addEventListener("astro:page-load", initCalendar);
+</script>
