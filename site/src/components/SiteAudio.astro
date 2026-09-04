@@ -69,11 +69,19 @@ import { u } from "../lib/url";
     /* Hidden until the script attaches. See the noscript block above. */
     display: none;
     position: fixed;
-    left: clamp(0.85rem, 2.5vw, 2.2rem);
+    /* Bottom RIGHT on desktop. It used to sit bottom-left, where it landed
+       directly on the booking form's first field — a fixed control covering
+       something you have to click. The right side of that page is short
+       sidebar cards, so the corner is genuinely free. Phones flip back to
+       the left below, where the right corner is the scroll thumb's. */
+    right: clamp(0.85rem, 2.5vw, 2.2rem);
     bottom: clamp(0.85rem, 2.5vw, 2.2rem);
     z-index: 30;
     align-items: center;
     gap: var(--s-3);
+    /* Button hugs the edge, title reads inward — otherwise the track name
+       runs off toward the screen edge and gets clipped on narrow desktops. */
+    flex-direction: row-reverse;
   }
   .dock[data-ready], .dock--plain { display: flex; }
   .dock--plain audio { width: min(17rem, 60vw); }
@@ -128,7 +136,7 @@ import { u } from "../lib/url";
      overlaps whatever happens to scroll under it — that is true of every
      persistent player — but a 44px circle costs the least. */
   @media (max-width: 30rem) {
-    .dock { left: 0.7rem; bottom: 0.7rem; }
+    .dock { left: 0.7rem; right: auto; bottom: 0.7rem; flex-direction: row; }
     .dock__t { display: none; }
     .dock__btn { width: 2.9rem; height: 2.9rem; }
     .dock__ico { width: 0.52rem; height: 0.62rem; }
