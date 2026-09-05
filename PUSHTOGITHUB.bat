@@ -38,7 +38,14 @@ echo Then watch the Actions tab.
 goto END
 :NOCHANGES
 echo.
-echo Nothing has changed since the last push.
+echo Nothing new to commit.
+rem "Nothing to commit" does NOT mean "nothing to push". A commit made
+rem some other way - by Claude over the mount, or by you in an editor -
+rem is already in history and still needs sending. Bailing out here was
+rem why a finished commit could sit on this machine looking pushed.
+echo Checking for commits that have not been pushed yet...
+git push -u origin main
+if errorlevel 1 goto FAILED
 goto END
 :NOGIT
 echo Git is not installed. Get it from https://git-scm.com/download/win
