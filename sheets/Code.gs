@@ -19,8 +19,13 @@
 var SHEET_NAME = 'Bookings';
 
 /** Where the "you have a new request" email goes. Empty string = no
- *  email is sent and the row is still written. */
-var NOTIFY_EMAIL = 'liznloya@gmail.com';
+ *  email is sent and the row is still written.
+ *
+ *  ⚠ POINTED AT X WHILE TESTING. Change to 'liznloya@gmail.com' once a
+ *  real booking has gone through end to end — otherwise the first thing
+ *  Liz sees is a test request from someone called "TEST" asking for a
+ *  session that does not exist, and she has no way to know it is fake. */
+var NOTIFY_EMAIL = 'calipxj@gmail.com';
 
 /** Column order. MUST match BOOKING_COLUMNS in
  *  site/src/lib/booking-api.ts. Adding a column is a change in exactly
