@@ -63,7 +63,7 @@ import {
    anyway. The /exec URL can only append a row; it never reads back.  */
 
 export const BUSY_CSV_URL     = "";
-export const BOOKING_ENDPOINT = "";
+export const BOOKING_ENDPOINT = "https://script.google.com/macros/s/AKfycbwL6GQuL17smmJKzkU796FGL55jWgamdXXOHnWQW5qAm2iVpasA9DYymDJuNEkQ0Baz/exec";
 
 /** Her timezone. Every time on the site is rendered in this, not the
  *  visitor's — a client in LA booking "2pm" means 2pm in Dallas. The
