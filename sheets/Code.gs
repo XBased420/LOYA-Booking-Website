@@ -53,11 +53,15 @@ var STUDIO_TZ = 'America/Chicago';
 /** Where the "you have a new request" email goes. Empty string = no
  *  email is sent and the row is still written.
  *
- *  ⚠ POINTED AT X WHILE TESTING. Change to 'liznloya@gmail.com' once a
- *  real booking has gone through end to end — otherwise the first thing
- *  Liz sees is a test request from someone called "TEST" asking for a
- *  session that does not exist, and she has no way to know it is fake. */
-var NOTIFY_EMAIL = 'calipxj@gmail.com';
+ *  LIVE as of 2026-09-05: this is Liz. It was pointed at X while the
+ *  write path was being proven, and switched over once a real booking
+ *  had gone through end to end.
+ *
+ *  If you point it back at yourself to test something, POINT IT BACK
+ *  AFTERWARDS — and remember this file is only a copy. Nothing deploys
+ *  it. The address that actually matters is the one in the Apps Script
+ *  editor, and only after Deploy > Manage deployments > New version. */
+var NOTIFY_EMAIL = 'liznloya@gmail.com';
 
 /** Column order. MUST match BOOKING_COLUMNS in
  *  site/src/lib/booking-api.ts. Adding a column is a change in exactly
