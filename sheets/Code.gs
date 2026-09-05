@@ -34,6 +34,22 @@ var SHEET_ID = '1-dShzzhGAPyl2OJunaF8RpZ9JVAQMyrQ7EKNPHNb8c8';
 
 var SHEET_NAME = 'Bookings';
 
+/** Her timezone, and the one every timestamp in the sheet is written in.
+ *
+ *  ⚠ THIS EXISTS BECAUSE OF A REAL BUG. The first live booking arrived
+ *  at 12:29 AM and the sheet logged it as "9/4/2026 22:29:31" — two
+ *  hours early. A sheet created through the Drive API defaults to
+ *  PACIFIC time, and `new Date()` written into a cell renders in the
+ *  SHEET's timezone, not hers.
+ *
+ *  Rather than depend on a settings menu nobody will remember to check,
+ *  the timestamp is formatted to a STRING here, in this timezone,
+ *  explicitly. Same reasoning as the TEXT() wrapper on the Busy tab:
+ *  make the value say what it means instead of trusting how something
+ *  else will render it. Changing the sheet's timezone now affects
+ *  nothing this script writes. */
+var STUDIO_TZ = 'America/Chicago';
+
 /** Where the "you have a new request" email goes. Empty string = no
  *  email is sent and the row is still written.
  *
@@ -176,10 +192,10 @@ function doPost(e) {
       for (var c = 0; c < COLUMNS.length; c++) {
         row.push(String(data[COLUMNS[c]] == null ? '' : data[COLUMNS[c]]));
       }
-      /* One extra cell past the named columns: when it arrived. Not in
-         COLUMNS because the site does not send it and must not be able
-         to forge it. */
-      row.push(new Date());
+      /* One extra cell past the named columns: when it arrived, in HER
+         timezone, as text. Not in COLUMNS because the site does not
+         send it and must not be able to forge it. */
+      row.push(stamp_(new Date()));
 
       sheet.appendRow(row);
     } finally {
@@ -217,12 +233,22 @@ function overRateLimit_(sheet) {
     .getRange(last - MAX_PER_HOUR + 1, col, MAX_PER_HOUR, 1)
     .getValues();
 
-  var cutoff = Date.now() - 3600 * 1000;
+  /* `received` is text in yyyy-MM-dd HH:mm:ss, and that format sorts
+     lexicographically in exactly the order it sorts chronologically —
+     so the cutoff compares as a plain string. No parsing, no timezone
+     guesswork, as long as both sides are formatted in STUDIO_TZ. */
+  var cutoff = stamp_(new Date(Date.now() - 3600 * 1000));
   for (var i = 0; i < values.length; i++) {
-    var t = values[i][0];
-    if (!(t instanceof Date) || t.getTime() < cutoff) return false;
+    var t = String(values[i][0] || '');
+    if (!t || t < cutoff) return false;
   }
   return true;
+}
+
+/** A Date -> "2026-09-08 14:30:00" in her timezone. One place, so the
+ *  rows written and the cutoff compared against them cannot drift. */
+function stamp_(d) {
+  return Utilities.formatDate(d, STUDIO_TZ, 'yyyy-MM-dd HH:mm:ss');
 }
 
 /** Tell Liz. Wrapped so a mail failure can never lose a row that was
