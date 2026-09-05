@@ -262,6 +262,35 @@ Step 8 is the one that proves the loop closed.
 
 ---
 
+## The workspace styling
+
+`sheets/Setup.gs` is a second Apps Script file. Paste it into the same
+project alongside `Code.gs`, pick **setupWorkspace** in the function
+dropdown, press **Run**. No deployment — nothing in it is on the request
+path, so a bug there cannot cost a booking.
+
+It is idempotent. Re-run it after any change to repair the formatting.
+
+It builds a **Dashboard** tab (counts and an upcoming list, all
+formulas, no data of its own), styles **Bookings**, and styles and
+warning-protects **Busy**.
+
+Three things it must never do, all enforced by `sheets/check.mjs`:
+
+- Bookings row 1 is the header `checkSetup()` validates — no title row
+  above it, no renaming, no reordering.
+- Nothing may sit below the data on Bookings. `appendRow` writes at
+  `getLastRow()+1`, so anything parked at the bottom means the next
+  client's booking lands underneath it. That is why the dashboard is a
+  separate tab.
+- Busy row 1 is the CSV header the site parses, and the tab is published.
+  Adding a row or a column there changes what the site downloads.
+
+`check.mjs` asserts `styleBookings_` and `styleBusy_` contain no value
+writes at all, so a future edit cannot quietly start touching data.
+
+---
+
 ## Things that will bite
 
 **The calendar means "she's probably free then". It does not mean the

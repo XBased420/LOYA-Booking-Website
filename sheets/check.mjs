@@ -17,7 +17,8 @@ import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-const src = readFileSync(new URL("./Code.gs", import.meta.url), "utf8");
+const src   = readFileSync(new URL("./Code.gs", import.meta.url), "utf8");
+const setup = readFileSync(new URL("./Setup.gs", import.meta.url), "utf8");
 let fail = 0;
 const ok = (n) => console.log("  ok   " + n);
 const bad = (n, d) => { fail++; console.log("  FAIL " + n + "\n       " + d); };
@@ -29,14 +30,20 @@ try { execFileSync(process.execPath, ["--check", tmp]); ok("parses as JavaScript
 catch (e) { bad("parses as JavaScript", String(e.stderr || e)); }
 
 /* Strip comments and string literals so we only read real code. */
-const code = src
+const strip = (t) => t
   .replace(/\/\*[\s\S]*?\*\//g, "")
   .replace(/\/\/.*/g, "")
   .replace(/'[^'\n]*'/g, "''")
   .replace(/"[^"\n]*"/g, '""');
+const code = strip(src);
 
-const defined = new Set([...code.matchAll(/function\s+(\w+)\s*\(/g)].map((m) => m[1]));
-const called  = new Set([...code.matchAll(/\b(\w+_)\s*\(/g)].map((m) => m[1]));
+/* Apps Script puts every file in ONE global scope, so a helper defined
+   in Code.gs is callable from Setup.gs. Resolve across both, or this
+   reports false failures — and worse, would miss a real one. */
+const setupCode = strip(setup);
+const both = code + "\n" + setupCode;
+const defined = new Set([...both.matchAll(/function\s+(\w+)\s*\(/g)].map((m) => m[1]));
+const called  = new Set([...both.matchAll(/\b(\w+_)\s*\(/g)].map((m) => m[1]));
 
 const missing = [...called].filter((c) => !defined.has(c));
 if (missing.length) bad("every helper called is defined", "missing: " + missing.join(", "));
@@ -60,6 +67,31 @@ for (const fn of ["stamp_", "to12h_", "overRateLimit_", "formatRow_"]) {
   const body = code.slice(code.indexOf("function checkSetup"), code.indexOf("function doPost"));
   if (body.includes(fn + "(")) ok("checkSetup exercises " + fn);
   else bad("checkSetup exercises " + fn, "add it, or a deletion goes unnoticed until a booking fails");
+}
+
+/* Setup.gs has to parse as well — same trap as before, a file that
+   parses is a file that will happily deploy and then throw. */
+const tmp2 = join(tmpdir(), "setupgs-check.js");
+writeFileSync(tmp2, setup);
+try { execFileSync(process.execPath, ["--check", tmp2]); ok("Setup.gs parses as JavaScript"); }
+catch (e) { bad("Setup.gs parses as JavaScript", String(e.stderr || e)); }
+
+/* THE INVARIANT THAT MATTERS. styleBookings_ and styleBusy_ touch the
+   two tabs the booking system depends on, so they must be presentation
+   ONLY. Any call that writes a value, clears a range or moves a row in
+   those functions is a bug waiting to eat real bookings — Bookings row 1
+   is the header checkSetup validates, and Busy!A2 is the formula the
+   published CSV is built from. */
+const banned = /\.(setValue|setValues|setFormula|setFormulas|clear|clearContent|clearContents|deleteRow|deleteRows|deleteColumn|insertRow|insertRows)\s*\(/;
+for (const fn of ["styleBookings_", "styleBusy_"]) {
+  const start = setupCode.indexOf("function " + fn);
+  if (start < 0) { bad(fn + " exists", "not found"); continue; }
+  const rest = setupCode.slice(start + 1);
+  const nextFn = rest.indexOf("\nfunction ");
+  const body = nextFn < 0 ? rest : rest.slice(0, nextFn);
+  const hit = body.match(banned);
+  if (hit) bad(fn + " is presentation-only", "writes data: " + hit[0]);
+  else ok(fn + " is presentation-only (no value writes)");
 }
 
 console.log("\n" + (fail ? fail + " FAILED" : "all checks passed") + "\n");
