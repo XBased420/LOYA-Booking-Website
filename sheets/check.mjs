@@ -56,7 +56,7 @@ if (a.length && a.join(",") === b.join(","))
 else bad("COLUMNS matches BOOKING_COLUMNS", "Code.gs: " + a.join(",") + "\n       site:    " + b.join(","));
 
 /* checkSetup is the only pre-deploy gate, so it has to touch the helpers. */
-for (const fn of ["stamp_", "to12h_", "overRateLimit_"]) {
+for (const fn of ["stamp_", "to12h_", "overRateLimit_", "formatRow_"]) {
   const body = code.slice(code.indexOf("function checkSetup"), code.indexOf("function doPost"));
   if (body.includes(fn + "(")) ok("checkSetup exercises " + fn);
   else bad("checkSetup exercises " + fn, "add it, or a deletion goes unnoticed until a booking fails");

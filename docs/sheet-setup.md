@@ -60,11 +60,19 @@ send it and must not be able to fake it.
 `balance_paid` is the column that was missing before: the 50% due on
 arrival was not being tracked anywhere.
 
-### Display formats (already applied)
+### Display formats — set by the script, not by you
 
-`start` and `end` are shown as **12-hour with AM/PM**, and `received` as
-`yyyy-mm-dd h:mm AM/PM`. Applied via Format → Number → Custom number
-format, using `h:mm AM/PM` and `yyyy-mm-dd h:mm AM/PM`.
+`start` and `end` show as **12-hour with AM/PM**, `received` as
+`yyyy-mm-dd h:mm AM/PM`, and `date` as `yyyy-mm-dd`.
+
+**Do not set these through Format → Number. It does not hold.**
+`appendRow` re-derives each cell's number format from the value it
+parses, so a column format applied by hand is wiped the moment the next
+booking arrives. It was set that way once, looked correct, and silently
+reverted to 24-hour on the very next row.
+
+`formatRow_()` in `sheets/Code.gs` applies the formats to each row as it
+is written. Change them there.
 
 **This is display only, and that distinction is the whole point.** The
 cells still hold time VALUES. The Busy tab reads those values with

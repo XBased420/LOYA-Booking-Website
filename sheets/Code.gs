@@ -132,6 +132,10 @@ function checkSetup() {
               ', 00:00 -> ' + to12h_('00:00') +
               ', 12:00 -> ' + to12h_('12:00'));
   console.log('rate limit:  ' + (overRateLimit_() ? 'TRIPPED' : 'clear'));
+  /* Re-format the last existing row, which also proves formatRow_ runs.
+     Harmless on an empty sheet: row 1 is the header and has no times. */
+  formatRow_(sheet, Math.max(2, sheet.getLastRow()));
+  console.log('formatRow_:  ok');
 
   return wrong.length ? 'FIX THE HEADERS' : 'OK';
 }
@@ -212,6 +216,7 @@ function doPost(e) {
       row.push(stamp_(new Date()));
 
       sheet.appendRow(row);
+      formatRow_(sheet, sheet.getLastRow());
     } finally {
       lock.releaseLock();
     }
@@ -287,6 +292,37 @@ function overRateLimit_() {
   recent.push(now);
   props.setProperty('recent', JSON.stringify(recent));
   return false;
+}
+
+/** Make the row Liz just received readable: 12-hour clock with AM/PM.
+ *
+ *  ⚠ SETTING THE COLUMN FORMAT BY HAND DOES NOT SURVIVE. appendRow
+ *  re-derives each cell's number format from the value it parses, so a
+ *  format applied through Format > Number is wiped the moment the script
+ *  writes the next booking. It looked fixed, then silently reverted to
+ *  24-hour on the very next row. Setting it here is deterministic, and
+ *  it lives in version control instead of in a menu nobody remembers.
+ *
+ *  This is DISPLAY ONLY. The cells still hold real date/time values, so
+ *  the Busy tab's TEXT(value,"HH:mm") is unaffected and the published
+ *  CSV the site reads stays 24-hour. Verify that after changing this:
+ *  Bookings should read 3:40 PM while Busy reads 15:40.
+ *
+ *  Indices come from COLUMNS rather than being hardcoded, so reordering
+ *  the sheet cannot quietly format the wrong cells. */
+function formatRow_(sheet, r) {
+  var col = function (name) { return COLUMNS.indexOf(name) + 1; };
+  try {
+    sheet.getRange(r, col('date')).setNumberFormat('yyyy-mm-dd');
+    sheet.getRange(r, col('start')).setNumberFormat('h:mm AM/PM');
+    sheet.getRange(r, col('end')).setNumberFormat('h:mm AM/PM');
+    /* `received` sits one past the named columns. */
+    sheet.getRange(r, COLUMNS.length + 1)
+         .setNumberFormat('yyyy-mm-dd h:mm AM/PM');
+  } catch (err) {
+    /* Cosmetics must never cost a booking that is already written. */
+    console.error('formatRow_ failed', err);
+  }
 }
 
 /** A Date -> "2026-09-08 14:30:00" in her timezone.
