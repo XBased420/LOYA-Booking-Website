@@ -134,15 +134,43 @@ and hit **Stop publishing** before doing anything else.
 
 ## 3. The Apps Script
 
-**Extensions → Apps Script** from inside the Sheet. This matters — it
-has to be the script bound to this Sheet, not a standalone one, or
-`getActiveSpreadsheet()` has nothing to return.
+> **Do NOT use Extensions → Apps Script.** It does not work on this
+> machine. Two Google accounts are signed into Chrome —
+> `calipxavier@gmail.com` and `calipxj@gmail.com` — and the Sheet is
+> owned by the second. Sheets builds a `/macros/u/1/` link and
+> `script.google.com` answers it with *"Sorry, unable to open the file
+> at this time."* Signing in to the right account on
+> `script.google.com` first does not fix it; neither does calling the
+> redirect target directly. That is why the script opens the sheet by
+> ID instead of being bound to it.
+
+Go to **[script.google.com/u/1/home](https://script.google.com/u/1/home)**
+— note the `/u/1/`, that is the `calipxj` account — and click
+**New project**.
 
 Delete whatever is in `Code.gs` and paste the whole of
-[`sheets/Code.gs`](../sheets/Code.gs) from this repo. Save.
+[`sheets/Code.gs`](../sheets/Code.gs) from this repo. Rename the project
+to something you will recognise (top left, "Untitled project"). Save.
 
-Check `NOTIFY_EMAIL` near the top is the address she wants the alerts
-at, or set it to `''` for no email.
+`SHEET_ID` at the top is already filled in with the real sheet.
+`NOTIFY_EMAIL` is pointed at X while testing — switch it to
+`liznloya@gmail.com` once a real booking has gone through, or `''` for
+no email.
+
+### Run `checkSetup` first
+
+In the toolbar, pick **checkSetup** from the function dropdown and press
+**Run**. Authorise when asked (*"Google hasn't verified this app"* →
+**Advanced** → **Go to … (unsafe)** → **Allow** — it is your own script,
+written a minute ago).
+
+The execution log should say the spreadsheet name, the tab, and
+`Headers: all 12 correct`. If it says MISMATCH it tells you exactly
+which column is wrong.
+
+Doing this before deploying means the authorisation prompt happens while
+you are looking at the editor, and any wrong ID or renamed tab shows up
+in two seconds instead of as a client's booking silently vanishing.
 
 ### Deploy it
 

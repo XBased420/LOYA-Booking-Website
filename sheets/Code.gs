@@ -16,6 +16,22 @@
 
 /* ── SETTINGS ──────────────────────────────────────────────────── */
 
+/** The spreadsheet this writes to, by ID — the long string in its URL.
+ *
+ *  WHY BY ID AND NOT getActiveSpreadsheet(): a script created through
+ *  Extensions > Apps Script is "bound" to its sheet and can just ask for
+ *  the active one. That menu is unusable on an account setup like X's —
+ *  two Google accounts signed in, the Sheet owned by the second one, and
+ *  Sheets builds a /macros/u/1/ link that script.google.com answers with
+ *  "Sorry, unable to open the file at this time." Three ways round it
+ *  all hit the same wall.
+ *
+ *  Opening by ID needs no binding, so the script can be a STANDALONE
+ *  project created straight from script.google.com/u/1/home, which does
+ *  work. It behaves identically — the owner has edit access either way —
+ *  and it survives someone duplicating or re-binding the sheet later. */
+var SHEET_ID = '1-dShzzhGAPyl2OJunaF8RpZ9JVAQMyrQ7EKNPHNb8c8';
+
 var SHEET_NAME = 'Bookings';
 
 /** Where the "you have a new request" email goes. Empty string = no
@@ -54,6 +70,40 @@ var MAX_PER_HOUR = 20;
  *  that is the fastest way to check you deployed the right thing. */
 function doGet() {
   return json({ ok: true, service: 'Loya booking intake', method: 'POST only' });
+}
+
+/** Run this ONCE from the editor, before deploying.
+ *
+ *  Two jobs. It triggers the authorisation prompt while you are looking
+ *  at the editor and can read it, instead of mid-deploy. And it proves
+ *  the script can actually reach the sheet — if SHEET_ID is wrong or the
+ *  tab is not named exactly "Bookings", you find out here in two seconds
+ *  rather than from a client whose booking silently vanished.
+ *
+ *  Check the execution log. It should name the file and the columns. */
+function checkSetup() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    throw new Error('No tab named "' + SHEET_NAME + '" in "' + ss.getName() +
+      '". Tabs found: ' + ss.getSheets().map(function (s) {
+        return s.getName();
+      }).join(', '));
+  }
+  var header = sheet.getRange(1, 1, 1, COLUMNS.length).getValues()[0];
+  var wrong = [];
+  for (var i = 0; i < COLUMNS.length; i++) {
+    if (String(header[i]).trim() !== COLUMNS[i]) {
+      wrong.push('column ' + (i + 1) + ': expected "' + COLUMNS[i] +
+        '", found "' + header[i] + '"');
+    }
+  }
+  console.log('Spreadsheet: ' + ss.getName());
+  console.log('Tab:         ' + sheet.getName());
+  console.log('Headers:     ' + (wrong.length ? 'MISMATCH\n  ' + wrong.join('\n  ')
+                                              : 'all ' + COLUMNS.length + ' correct'));
+  console.log('Notify:      ' + (NOTIFY_EMAIL || '(off)'));
+  return wrong.length ? 'FIX THE HEADERS' : 'OK';
 }
 
 function doPost(e) {
@@ -112,7 +162,7 @@ function doPost(e) {
     }
 
     try {
-      var sheet = SpreadsheetApp.getActiveSpreadsheet()
+      var sheet = SpreadsheetApp.openById(SHEET_ID)
         .getSheetByName(SHEET_NAME);
       if (!sheet) {
         return json({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' });
