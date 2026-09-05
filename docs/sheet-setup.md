@@ -33,14 +33,21 @@ else, ever.
 
 ---
 
-## 1. Build the Sheet
+## 1. The Sheet
 
-New Google Sheet, name it something like **Loya Bookings**.
+**This already exists.** Built and verified 2026-09-05:
+
+> **Loya Bookings — Database**
+> `https://docs.google.com/spreadsheets/d/1-dShzzhGAPyl2OJunaF8RpZ9JVAQMyrQ7EKNPHNb8c8/edit`
+
+Both tabs are in place, the formula is in and tested (a `confirmed` row
+appears in Busy within seconds; flipping it to `pending` removes it
+again). The rest of this section is what it contains, so you can rebuild
+it or check it.
 
 ### Tab 1 — `Bookings`
 
-Rename `Sheet1` to `Bookings`. Row 1, one header per cell, exactly these
-twelve names in this order:
+Row 1, one header per cell, exactly these twelve names in this order:
 
 ```
 date  start  end  service  name  email  phone  status  quoted  deposit_paid  balance_paid  notes
@@ -69,13 +76,30 @@ date  start  end
 In `A2`, one formula that fills the whole tab from confirmed bookings:
 
 ```
-=QUERY(Bookings!A2:L, "select A, B, C where H = 'confirmed'", 0)
+=IFERROR(ARRAYFORMULA(TEXT(QUERY(Bookings!A2:L,"select A, B, C where H = 'confirmed'",0),{"yyyy-mm-dd","HH:mm","HH:mm"})),"")
 ```
 
 `H` is the `status` column. If you reorder the Bookings columns, this
 letter changes — that is the one place column ORDER still matters.
 
 Leave the rest of the tab empty. The formula fills it.
+
+> **Why the `TEXT(...)` wrapper, which looks like noise.** It is not.
+> `QUERY` returns VALUES, not what you see on screen. A cell showing
+> `2026-09-15` is really the number `46280` (days since 1899), and
+> `14:00` is really `0.58333` (a fraction of a day). The Bookings tab
+> formats them back into something readable; the Busy tab does not, so a
+> bare `QUERY` fills Busy with `46280`, `0.5833`, `0.6667` — and that is
+> what gets published as CSV.
+>
+> The site would then reject every row as unparseable, drop every busy
+> block, and **offer clients times she is already booked for.** Silently.
+> No error anywhere.
+>
+> `TEXT(...)` forces real strings out, so the CSV says `2026-09-15` and
+> `14:00` no matter how anyone has formatted the Bookings tab. This was
+> caught by building the sheet and looking at it, not by reasoning about
+> it — the bare `QUERY` version was in this document first.
 
 ---
 

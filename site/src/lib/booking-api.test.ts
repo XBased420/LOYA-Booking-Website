@@ -90,6 +90,19 @@ check("ISO date", parseDay("2026-09-15"), [2026, 9, 15]);
 check("US date from a date-formatted cell", parseDay("9/15/2026"), [2026, 9, 15]);
 check("date garbage is null", parseDay("next tuesday"), null);
 
+/* ═══ REAL BUG, FOUND WHILE BUILDING THE SHEET 2026-09-05 ═══
+   QUERY() returns VALUES, not what the cell displays. A date cell that
+   reads "2026-09-15" is really 46280, and "14:00" is really 0.58333, so
+   a bare QUERY filled the Busy tab with serials and that is what would
+   have been published as CSV. These MUST be rejected rather than
+   coerced into some nearby date — a wrong busy block is worse than a
+   missing one. The real fix is the TEXT() wrapper in the Busy formula
+   (docs/sheet-setup.md); this is the seatbelt. */
+check("a Google date serial is not a date", parseDay("46280"), null);
+check("a Google time serial is not a clock", parseClock("0.5833333333"), null);
+check("a whole row of serials is skipped, not guessed at",
+  parseBusyCsv("date,start,end\n46280,0.5833333333,0.6666666667\n", TZ), []);
+
 console.log("\n3. the hostile Busy tab");
 
 /* Columns SHUFFLED (end, date, start — not the documented order), one
