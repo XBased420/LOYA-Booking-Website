@@ -272,18 +272,49 @@ function overRateLimit_() {
   return false;
 }
 
+/** "14:30" -> "2:30 PM". For humans only.
+ *
+ *  The sheet gets the 24-hour string and a 12-hour DISPLAY FORMAT on the
+ *  column, so the stored value stays unambiguous while Liz reads it the
+ *  way she thinks. The email has no cell to format, so it converts here.
+ *
+ *  Deliberately NOT applied to what the site reads. The Busy tab pulls
+ *  TEXT(value,"HH:mm") straight off the time value, which ignores the
+ *  display format, so the published CSV stays 24-hour. The site's parser
+ *  does understand "2:30 PM" — that is tested — but there is no reason
+ *  to put an AM/PM ambiguity into a machine feed nobody reads.
+ *
+ *  Anything it cannot parse is handed back untouched rather than
+ *  mangled: a half-readable time in her inbox beats a wrong one. */
+function to12h_(clock) {
+  var s = String(clock == null ? '' : clock).trim();
+  var m = s.match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return s;
+
+  var h = Number(m[1]);
+  if (!isFinite(h) || h > 24) return s;
+
+  /* 24:00 and 00:00 are both midnight, and both must read 12:00 AM —
+     not "0:00 AM", and not "12:00 PM". */
+  var suffix = (h < 12 || h === 24) ? 'AM' : 'PM';
+  var h12 = h % 12;
+  if (h12 === 0) h12 = 12;
+
+  return h12 + ':' + m[2] + ' ' + suffix;
+}
+
 /** Tell Liz. Wrapped so a mail failure can never lose a row that was
  *  already written — the booking is the thing that matters. */
 function notify_(d) {
   if (!NOTIFY_EMAIL) return;
   try {
     var subject = 'New booking request — ' + d.name + ' — ' +
-      d.service + ' — ' + d.date + ' ' + d.start;
+      d.service + ' — ' + d.date + ' ' + to12h_(d.start);
 
     var body =
       d.name + ' asked for ' + d.service + '.\n\n' +
-      'When:   ' + d.date + '  ' + d.start +
-        (d.end ? ' to ' + d.end : '') + '\n' +
+      'When:   ' + d.date + '  ' + to12h_(d.start) +
+        (d.end ? ' to ' + to12h_(d.end) : '') + '\n' +
       'Email:  ' + d.email + '\n' +
       'Phone:  ' + (d.phone || '—') + '\n\n' +
       (d.notes ? d.notes + '\n\n' : '') +

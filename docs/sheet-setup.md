@@ -60,10 +60,21 @@ send it and must not be able to fake it.
 `balance_paid` is the column that was missing before: the 50% due on
 arrival was not being tracked anywhere.
 
-**Set the `date` column to plain text** (select column A → Format →
-Number → Plain text) so Google leaves `2026-09-15` alone instead of
-reformatting it. Same for `start` and `end`. The site reads both
-formats, but plain text is what you will actually want to read.
+### Display formats (already applied)
+
+`start` and `end` are shown as **12-hour with AM/PM**, and `received` as
+`yyyy-mm-dd h:mm AM/PM`. Applied via Format → Number → Custom number
+format, using `h:mm AM/PM` and `yyyy-mm-dd h:mm AM/PM`.
+
+**This is display only, and that distinction is the whole point.** The
+cells still hold time VALUES. The Busy tab reads those values with
+`TEXT(...,"HH:mm")`, which ignores the display format, so the published
+CSV stays 24-hour no matter how the Bookings tab is formatted.
+
+Verified: with Bookings showing `2:00 PM` / `2:30 PM`, the Busy tab
+emits `14:00` / `14:30`. Keep it that way. The site's parser does
+understand `2:00 PM` — there are tests for it — but there is no reason
+to put an AM/PM ambiguity into a machine feed nobody reads.
 
 ### Tab 2 — `Busy`
 
