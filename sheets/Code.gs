@@ -188,7 +188,7 @@ function doPost(e) {
         return json({ ok: false, error: 'Sheet "' + SHEET_NAME + '" not found.' });
       }
 
-      if (overRateLimit_(sheet)) {
+      if (overRateLimit_()) {
         return json({ ok: false, error: 'Too many requests. Try again later.' });
       }
 
@@ -225,34 +225,51 @@ function json(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-/** True if the last MAX_PER_HOUR rows all arrived within the hour.
- *  Reads only the timestamp column, so it stays cheap as the sheet
- *  grows. */
-function overRateLimit_(sheet) {
-  var last = sheet.getLastRow();
-  if (last <= MAX_PER_HOUR) return false;
+/** Spam brake: has this endpoint taken MAX_PER_HOUR requests in the last
+ *  rolling hour? A real client sends one. This is a brake, not security.
+ *
+ *  ⚠ THIS USED TO READ THE `received` COLUMN AND WAS BROKEN. Sheets
+ *  does not store what you hand it — it PARSES it. The timestamp is
+ *  written as the string "2026-09-05 00:55:12" and Sheets silently
+ *  turns that into a datetime VALUE, so getValues() hands back a Date
+ *  object, not the text. Comparing String(thatDate) against a
+ *  "yyyy-MM-dd..." cutoff compares "Fri Sep 05 2026…" with "2026-09…",
+ *  and "F" sorts after "2", so the comparison was false every time.
+ *
+ *  Nothing would have gone wrong until the 21st row, at which point
+ *  this would have started returning true forever and every real
+ *  booking would have been rejected with "Too many requests." Months
+ *  from now, with no obvious cause.
+ *
+ *  So it no longer asks the spreadsheet anything. Script properties
+ *  hold plain epoch milliseconds — no cell, no parsing, no timezone,
+ *  and nothing Google can reinterpret. This runs inside the same lock
+ *  as the append, so the read-modify-write cannot race either. */
+function overRateLimit_() {
+  var props = PropertiesService.getScriptProperties();
+  var now = Date.now();
+  var cutoff = now - 3600 * 1000;
 
-  var col = COLUMNS.length + 1;                 // the appended timestamp
-  var values = sheet
-    .getRange(last - MAX_PER_HOUR + 1, col, MAX_PER_HOUR, 1)
-    .getValues();
-
-  /* `received` is text in yyyy-MM-dd HH:mm:ss, and that format sorts
-     lexicographically in exactly the order it sorts chronologically —
-     so the cutoff compares as a plain string. No parsing, no timezone
-     guesswork, as long as both sides are formatted in STUDIO_TZ. */
-  var cutoff = stamp_(new Date(Date.now() - 3600 * 1000));
-  for (var i = 0; i < values.length; i++) {
-    var t = String(values[i][0] || '');
-    if (!t || t < cutoff) return false;
+  var recent = [];
+  try {
+    recent = JSON.parse(props.getProperty('recent') || '[]');
+    if (!Array.isArray(recent)) recent = [];
+  } catch (err) {
+    recent = [];                       // corrupt value must not block bookings
   }
-  return true;
-}
 
-/** A Date -> "2026-09-08 14:30:00" in her timezone. One place, so the
- *  rows written and the cutoff compared against them cannot drift. */
-function stamp_(d) {
-  return Utilities.formatDate(d, STUDIO_TZ, 'yyyy-MM-dd HH:mm:ss');
+  recent = recent.filter(function (t) {
+    return typeof t === 'number' && t > cutoff;
+  });
+
+  if (recent.length >= MAX_PER_HOUR) {
+    props.setProperty('recent', JSON.stringify(recent));
+    return true;
+  }
+
+  recent.push(now);
+  props.setProperty('recent', JSON.stringify(recent));
+  return false;
 }
 
 /** Tell Liz. Wrapped so a mail failure can never lose a row that was
