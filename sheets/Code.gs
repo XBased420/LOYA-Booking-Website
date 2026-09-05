@@ -123,6 +123,16 @@ function checkSetup() {
   console.log('Headers:     ' + (wrong.length ? 'MISMATCH\n  ' + wrong.join('\n  ')
                                               : 'all ' + COLUMNS.length + ' correct'));
   console.log('Notify:      ' + (NOTIFY_EMAIL || '(off)'));
+
+  /* Smoke-test every helper doPost depends on. Reading headers proved
+     the sheet was reachable but said nothing about the code, which is
+     how a deleted function shipped. Anything missing throws HERE. */
+  console.log('stamp_:      ' + stamp_(new Date()));
+  console.log('to12h_:      14:30 -> ' + to12h_('14:30') +
+              ', 00:00 -> ' + to12h_('00:00') +
+              ', 12:00 -> ' + to12h_('12:00'));
+  console.log('rate limit:  ' + (overRateLimit_() ? 'TRIPPED' : 'clear'));
+
   return wrong.length ? 'FIX THE HEADERS' : 'OK';
 }
 
@@ -210,10 +220,17 @@ function doPost(e) {
     return json({ ok: true });
 
   } catch (err) {
-    /* Log the detail, return a generic message. A stack trace in a
-       stranger's browser helps nobody. */
+    /* `error` is what a stranger might see, so it stays generic.
+       `detail` carries the real reason: the site logs it to the console
+       and never displays it. Without this a server-side fault looks
+       identical to a network drop from the outside, which cost a full
+       debugging round trip once already. */
     console.error(err);
-    return json({ ok: false, error: 'Could not save the request.' });
+    return json({
+      ok: false,
+      error: 'Could not save the request.',
+      detail: String((err && err.message) || err),
+    });
   }
 }
 
@@ -270,6 +287,22 @@ function overRateLimit_() {
   recent.push(now);
   props.setProperty('recent', JSON.stringify(recent));
   return false;
+}
+
+/** A Date -> "2026-09-08 14:30:00" in her timezone.
+ *
+ *  ⚠ THIS WAS DELETED ONCE AND IT COST A LIVE OUTAGE. Rewriting
+ *  overRateLimit_() replaced a range of text that happened to contain
+ *  this function too, so `row.push(stamp_(new Date()))` was left calling
+ *  something that no longer existed. A missing function is a RUNTIME
+ *  error, not a syntax one, so the file still parsed, still deployed,
+ *  and still answered GET — and then threw on every real booking, where
+ *  the catch-all turned it into "Could not save the request."
+ *
+ *  checkSetup() now calls this, so the same mistake fails in the editor
+ *  in two seconds instead of in front of a client. */
+function stamp_(d) {
+  return Utilities.formatDate(d, STUDIO_TZ, 'yyyy-MM-dd HH:mm:ss');
 }
 
 /** "14:30" -> "2:30 PM". For humans only.
