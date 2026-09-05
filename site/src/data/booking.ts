@@ -162,5 +162,11 @@ export const intakeFor = (slug: string): "studio" | "event" | null =>
    has been chosen. */
 export const notify = { email: true, sms: true };
 
-/** Where a submitted booking should go. Empty until a platform exists. */
+/** MOVED. The booking endpoint now lives in src/lib/booking-api.ts as
+ *  BOOKING_ENDPOINT, next to the Busy-tab CSV URL, so both halves of the
+ *  Sheet connection are in one file. This file is for LIZ'S ANSWERS —
+ *  rates, hours, policies — and a URL is not one of those.
+ *
+ *  Kept as an empty export only so nothing that still imports it breaks
+ *  silently. Delete once nothing does. */
 export const bookingEndpoint = "";

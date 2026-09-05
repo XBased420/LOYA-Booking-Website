@@ -5,13 +5,18 @@ import Photo from "../components/Photo.astro";
 import Slot from "../components/Slot.astro";
 import AvailabilityCalendar from "../components/AvailabilityCalendar.astro";
 import {
-  bookableServices, availabilityKnown, availability, bookingEndpoint,
+  bookableServices, availability,
   rateLines, deposit, paymentMethods, cancellationPolicy, leadTime,
   intakeFields, intakeFor,
 } from "../data/booking";
+import { BOOKING_ENDPOINT } from "../lib/booking-api";
 import { site } from "../data/site";
 
-const live = bookingEndpoint !== "";
+/* Sending is on once the Apps Script endpoint is pasted into
+   booking-api.ts. Read at BUILD time so a site with no endpoint ships
+   the button already disabled, rather than enabling it and failing in
+   front of a client. */
+const live = BOOKING_ENDPOINT !== "";
 /* Which intake set each service needs, resolved once at build time from
    booking.ts so the page and the data cannot drift apart. */
 const intakeKindFor = Object.fromEntries(
@@ -203,6 +208,19 @@ const intakeKindFor = Object.fromEntries(
             </div>
           </fieldset>
 
+          {/* Honeypot. Never rendered to a person: off-screen, not
+              focusable, not required, hidden from assistive tech. A bot
+              fills every input it can find, and the Apps Script drops
+              any request that arrives with this filled in. Positioned
+              off-screen rather than display:none because some bots skip
+              anything that is display:none — which is the whole point
+              of the trap. */}
+          <div class="hp" aria-hidden="true">
+            <label for="website">Website</label>
+            <input type="text" id="website" name="website"
+                   tabindex="-1" autocomplete="off" />
+          </div>
+
           <div class="act">
             <button class="btn btn--primary" type="submit" id="review">
               Review request
@@ -215,8 +233,8 @@ const intakeKindFor = Object.fromEntries(
 
           <p class="act__note typewriter" id="send-note">
             {live
-              ? "Your request goes straight to Liz."
-              : "Sending is switched off: no booking platform is connected yet, so there is nowhere for this to go. Review still works and shows exactly what would be sent."}
+              ? "Your request goes to Liz. She confirms the date and time before anything is held."
+              : "Sending is switched off: the booking sheet is not connected yet, so there is nowhere for this to go. Review still works and shows exactly what would be sent."}
           </p>
 
           <output class="out" id="out" hidden></output>
@@ -255,12 +273,20 @@ const intakeKindFor = Object.fromEntries(
         </Paper>
 
         <div class="side__slots">
-          <Slot label="ADD BOOKING PLATFORM"
-                note="Where requests are received and confirmed." size="sm" />
-          <p class="side__fallback typewriter">
-            Booking is not switched on yet &mdash; until it is, email
-            {" "}<a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>.
-          </p>
+          {live ? (
+            <p class="side__fallback typewriter">
+              Prefer email? <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>.
+            </p>
+          ) : (
+            <>
+              <Slot label="CONNECT THE BOOKING SHEET"
+                    note="Where requests are received and confirmed." size="sm" />
+              <p class="side__fallback typewriter">
+                Booking is not switched on yet &mdash; until it is, email
+                {" "}<a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>.
+              </p>
+            </>
+          )}
         </div>
       </aside>
     </div>
@@ -268,6 +294,18 @@ const intakeKindFor = Object.fromEntries(
 </Base>
 
 <script>
+  import {
+    fetchServices, buildPayload, submitBooking, writeConfigured,
+    BOOKING_COLUMNS,
+  } from "../lib/booking-api";
+  import { site } from "../data/site";
+
+  /* An Astro <script> is a module of its own and cannot read the
+     frontmatter above, so the address comes from the same file the
+     frontmatter reads. Hardcoding it here is how it ends up out of date
+     in exactly one of the two places. */
+  const MAIL = site.contact.email;
+
   /* Progressive enhancement only. With JS off the fields still validate
      natively and "Send request" stays disabled — nothing here is required
      to understand or fill in the form. */
@@ -324,48 +362,107 @@ const intakeKindFor = Object.fromEntries(
   }
 
   if (form && out) {
-    form.addEventListener("submit", (e) => {
-      e.preventDefault(); // nothing is transmitted anywhere
+    const sendBtn = document.getElementById("send") as HTMLButtonElement | null;
+    let inFlight = false;
 
-      const d = new FormData(form);
-      const base = {
-        name: d.get("name"),
-        email: d.get("email"),
-        phone: d.get("phone"),
-        service: d.get("service"),
-        date: d.get("date"),
-        time: d.get("time"),
-        projectDescription: d.get("project"),
-      };
-      /* Everything the active intake set collected, minus the base
-         fields, so the preview shows exactly what Liz would receive. */
-      const extra: Record<string, string> = {};
-      for (const [k, v] of d.entries()) {
-        if (k in base || k === "project") continue;
-        extra[k] = String(v);
-      }
-      const record = {
-        ...base,
-        ...extra,
-        depositStatus: "awaiting",
-        status: "pending",
-      };
+    const esc = (v: unknown) =>
+      String(v ?? "").replace(/[<>&]/g, (c) =>
+        ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] as string);
 
-      out.hidden = false;
-      out.innerHTML =
-        '<p class="out__h typewriter">This is exactly what would be sent:</p>' +
-        '<dl class="out__dl">' +
-        Object.entries(record)
-          .map(
-            ([k, v]) =>
-              `<dt>${k}</dt><dd>${String(v ?? "").replace(/[<>&]/g, (c) =>
-                ({ "<": "&lt;", ">": "&gt;", "&": "&amp;" })[c] as string
-              )}</dd>`
-          )
+    /* FormData -> a plain object. Disabled fieldsets contribute nothing,
+       which is exactly right: the intake set that does not apply to this
+       service is disabled, so its answers never reach the sheet. */
+    function readForm(): Record<string, string> {
+      const out: Record<string, string> = {};
+      for (const [k, v] of new FormData(form!).entries()) out[k] = String(v);
+      return out;
+    }
+
+    /* One table, used by BOTH the preview and the sent confirmation, and
+       built from the same buildPayload() the network call uses. That is
+       what makes "this is exactly what would be sent" true rather than a
+       claim — if the two ever drift, this is the line that stops it. */
+    function table(payload: Record<string, string>) {
+      return '<dl class="out__dl">' +
+        BOOKING_COLUMNS
+          .filter((k) => String(payload[k] ?? "").trim() !== "")
+          .map((k) => `<dt>${esc(k)}</dt><dd>${esc(payload[k])}</dd>`)
           .join("") +
-        "</dl>" +
-        '<p class="out__n typewriter">Not sent — no booking platform is connected.</p>';
-      out.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        "</dl>";
+    }
+
+    function show(html: string) {
+      out!.hidden = false;
+      out!.innerHTML = html;
+      out!.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (inFlight) return;                     // double-click guard
+
+      /* Which button submitted. Both are type=submit so that native
+         validation runs for both — a review of an invalid form is not
+         worth showing. */
+      const wantsToSend =
+        (e.submitter as HTMLElement | null)?.id === "send";
+
+      const raw = readForm();
+      const services = await fetchServices();
+      const service = services.find((s) => s.slug === raw.service);
+      const payload = buildPayload(raw, service);
+
+      if (!wantsToSend || !writeConfigured()) {
+        show(
+          '<p class="out__h typewriter">This is exactly what would be sent:</p>' +
+          table(payload) +
+          '<p class="out__n typewriter">' +
+          (writeConfigured()
+            ? "Nothing sent yet — press Send request when you're ready."
+            : "Not sent — the booking sheet is not connected.") +
+          "</p>",
+        );
+        return;
+      }
+
+      inFlight = true;
+      const label = sendBtn?.textContent ?? "Send request";
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = "Sending…"; }
+      show('<p class="out__h typewriter">Sending…</p>');
+
+      const res = await submitBooking(payload);
+
+      if (res.ok) {
+        /* Deliberately does NOT say the slot is booked or held. The
+           calendar means "she's probably free then"; she confirms by
+           hand, and the deposit is what actually holds a date. Saying
+           anything stronger here would be the site making a promise she
+           has not made. */
+        show(
+          '<p class="out__h out__ok typewriter">Request sent.</p>' +
+          '<p class="out__p">Liz will confirm your date and time, then you pay the ' +
+          '50% deposit to hold it. Nothing is held until she confirms.</p>' +
+          '<p class="out__h typewriter">What you sent:</p>' +
+          table(payload),
+        );
+        form!.querySelectorAll<HTMLButtonElement>("button[type=submit]")
+          .forEach((b) => { b.disabled = true; });
+        if (sendBtn) sendBtn.textContent = "Sent";
+        return;
+      }
+
+      /* Failure has to be loud and has to give them a way through, or
+         the request is simply lost and neither of them ever knows. */
+      console.error("[booking] submit failed", res.error);
+      show(
+        '<p class="out__h out__bad typewriter">That didn\u2019t go through.</p>' +
+        '<p class="out__p">Nothing was sent. Please try again, or email ' +
+        '<a href="mailto:' + MAIL + '">' + MAIL + '</a> and paste the ' +
+        "details below \u2014 you won't have to type it all again.</p>" +
+        table(payload),
+      );
+      inFlight = false;
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = label; }
     });
   }
   }
@@ -509,14 +606,40 @@ const intakeKindFor = Object.fromEntries(
     max-width: 40rem; line-height: 1.5;
   }
 
+  /* The honeypot. Off-screen rather than display:none — a bot that
+     skips display:none would skip the trap, which defeats it. Not
+     required, not focusable, hidden from assistive tech at the wrapper. */
+  .hp {
+    position: absolute; left: -9999px; top: auto;
+    width: 1px; height: 1px; overflow: hidden;
+  }
+
   .out { display: block; border-top: 1.5px dashed var(--paper-ink-soft); padding-top: var(--s-4); }
+  .out :global(.out__p) {
+    margin: 0 0 var(--s-4); font-size: var(--t-sm);
+    color: var(--paper-ink); max-width: 40rem; line-height: 1.55;
+  }
+  .out :global(.out__p a) { color: var(--pink-deep); }
+  /* Not colour alone — WCAG 1.4.1. The mark carries the state too, so it
+     survives greyscale and colour-blindness. */
+  .out :global(.out__ok)::before  { content: "\2713\00a0"; }
+  .out :global(.out__bad)::before { content: "\2715\00a0"; }
+  .out :global(.out__ok)  { color: #1d6b3f; font-weight: 700; }
+  .out :global(.out__bad) { color: #b4232a; font-weight: 700; }
   .out :global(.out__h) { margin: 0 0 var(--s-3); font-size: var(--t-xs); letter-spacing: .14em; color: var(--paper-ink); }
   .out :global(.out__dl) {
     margin: 0; display: grid; grid-template-columns: auto 1fr;
     gap: var(--s-2) var(--s-4); font-family: var(--font-type); font-size: var(--t-xs);
   }
   .out :global(dt) { color: var(--paper-ink-soft); }
-  .out :global(dd) { margin: 0; color: var(--paper-ink); overflow-wrap: anywhere; }
+  /* pre-line, because `notes` is one cell holding the project
+     description and every intake answer on their own lines. HTML
+     collapses those newlines, so without this the preview reads as a
+     run-on paragraph that looks nothing like the cell Liz will open. */
+  .out :global(dd) {
+    margin: 0; color: var(--paper-ink); overflow-wrap: anywhere;
+    white-space: pre-line;
+  }
   .out :global(.out__n) { margin: var(--s-4) 0 0; font-size: var(--t-xs); color: #8a5a00; font-weight: 700; }
 
   /* SIDEBAR */

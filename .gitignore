@@ -27,3 +27,7 @@ hate_2_2_KLICKAUD.mp3
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# build pre-flight tarballs (built in the cloud container, never committed)
+_preflight.tar.gz
+_to_delete/
