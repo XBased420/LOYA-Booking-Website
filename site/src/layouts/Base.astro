@@ -6,10 +6,17 @@ import SiteAudio from "../components/SiteAudio.astro";
 import { site, isPlaceholder, channelHref, contactChannels } from "../data/site";
 import { ClientRouter } from "astro:transitions";
 
-interface Props { title?: string; description?: string; ogImage?: string; }
+interface Props {
+  title?: string; description?: string; ogImage?: string;
+  /** Full-bleed pages that bring their own chrome (the homepage magazine):
+   *  no site nav, no footer, no animated background, no corner player.
+   *  The <head> — SEO, the noindex preview guard, ClientRouter — is unchanged. */
+  bare?: boolean;
+}
 const {
   title, description = site.seo.description,
   ogImage = "/media/img/grad-console-a-1200.jpg",
+  bare = false,
 } = Astro.props;
 const fullTitle = title ? `${title} — ${site.name}` : site.seo.title;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
@@ -65,15 +72,15 @@ const grain =
   {/* The animated background. Fixed to the viewport and sitting at
       z-index -1, so it is behind every page without any page having to
       know about it. See components/SoundField.astro. */}
-  <SoundField />
+  {!bare && <SoundField />}
   {/* Her track, offered in the bottom-left corner of every page. Never
       autoplays; on play it feeds the SoundField analyser so the background
       reacts to the real signal. See components/SiteAudio.astro. */}
-  <SiteAudio />
+  {!bare && <SiteAudio />}
   <a class="skip-link" href="#main">Skip to content</a>
-  <Nav />
+  {!bare && <Nav />}
   <main id="main"><slot /></main>
-  <footer class="foot">
+  {!bare && <footer class="foot">
     <div class="wrap">
       <p class="display name">{site.name}</p>
       <p class="typewriter roles">{site.rolesLine}</p>
@@ -95,7 +102,7 @@ const grain =
 
       <a class="btn btn--primary" href={u("/book")}>Book a Session</a>
     </div>
-  </footer>
+  </footer>}
   <style>
     .foot { border-top: 1px solid var(--rule-1); padding-block: var(--s-8); margin-top: var(--s-9); }
     .foot .wrap { display: grid; gap: var(--s-3); justify-items: start; }

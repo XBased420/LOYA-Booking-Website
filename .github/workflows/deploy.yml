@@ -32,6 +32,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check source file locations
+        run: |
+          for folder in components layouts pages scripts styles; do
+            if [ -e "$folder" ]; then
+              echo "::error::Found $folder/ at the repository root. Astro source belongs under site/src/$folder/."
+              exit 1
+            fi
+          done
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
