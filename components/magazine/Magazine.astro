@@ -1,0 +1,55 @@
+---
+/* ═══════════════════════════════════════════════════════════════
+   THE MAGAZINE — the homepage as Issue 01 of LOYA.
+
+   Scroll (or swipe, or ←/→) and the pages turn. The top bar replaces
+   the site nav on this one page: logo, where you are in the issue,
+   the page-flip sound switch, a Contents menu and Book.
+
+   The pages themselves live in MagPages.astro; the engine that turns
+   them lives in scripts/magazine.ts; the styles in styles/magazine.css.
+   ═══════════════════════════════════════════════════════════════ */
+import "../../styles/magazine.css";
+import MagPages from "./MagPages.astro";
+import { u } from "../../lib/url";
+import { site } from "../../data/site";
+import { backgroundTrack as track } from "../../data/work";
+---
+
+<div class="mag desk" data-song={u(track.src)} data-song-label={`${track.title} by ${track.artist}`}>
+  <header class="bar">
+    <a class="logo" href={u("/")} data-go="0">{site.name}</a>
+    <span class="where" id="mag-where">p. — <b>Cover</b></span>
+    <button class="pill" id="mag-sound" type="button" aria-pressed="false" title="Page-turn sound">♪ Sound</button>
+    <div class="menu">
+      <button class="pill" id="mag-menu-btn" type="button" aria-expanded="false" aria-controls="mag-menu">Contents ▾</button>
+      <ol id="mag-menu" hidden></ol>
+    </div>
+    <a class="pill book" href={u("/book")}>Book</a>
+  </header>
+
+  <div class="track" id="mag-track">
+    <div class="stage"><div class="drop"><div class="book-el" id="mag-book"></div></div></div>
+  </div>
+  <div class="dots" id="mag-dots"></div>
+  <p class="hint" id="mag-hint">Scroll or swipe to turn the page</p>
+
+  <MagPages />
+</div>
+
+<script>
+  import { mount } from "../../scripts/magazine";
+
+  /* The site navigates without full reloads (ClientRouter), so the magazine
+     is started on every arrival at the homepage and torn down before the
+     page is swapped out — otherwise its scroll and key listeners, animation
+     loop and song would keep running on /about. */
+  let teardown: (() => void) | null = null;
+  const start = () => {
+    const root = document.querySelector<HTMLElement>(".mag");
+    if (root && !root.dataset.mounted) { root.dataset.mounted = "1"; teardown = mount(root); }
+  };
+  document.addEventListener("astro:page-load", start);
+  document.addEventListener("astro:before-swap", () => { teardown?.(); teardown = null; });
+  start();
+</script>

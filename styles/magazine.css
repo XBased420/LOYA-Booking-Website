@@ -1,0 +1,383 @@
+/* ═══════════════════════════════════════════════════════════════
+   THE MAGAZINE — homepage styles.
+
+   Everything is scoped under .mag, so nothing here can reach the rest
+   of the site, and the site's palette and fonts (tokens.css) are used
+   as-is rather than redefined.
+
+   Two halves:
+   1. The pages (.pg …): each page is a container and sizes everything
+      in cqw, so a page scales with the magazine on any screen.
+   2. The engine (.stage, .leaf, .curl …): the 3D book, the bending
+      strips, the paper block and spine. Driven by scripts/magazine.ts.
+   ═══════════════════════════════════════════════════════════════ */
+.mag{--night:#1c1228;--spring:cubic-bezier(.2,.9,.25,1.25);--out:cubic-bezier(.2,.8,.2,1);
+  position:relative;line-height:1.25;color:var(--text-1);font-family:var(--font-sans)}
+.mag [hidden]{display:none!important}
+.mag{min-height:100vh}
+/* Until the engine is running (or if JavaScript is off) only the top bar and the stacked pages show. */
+.mag:not(.is-live) .track,.mag:not(.is-live) .hint,.mag:not(.is-live) .dots,.mag:not(.is-live) #mag-sound,.mag:not(.is-live) .menu,.mag:not(.is-live) .where{display:none}
+/* With JavaScript off, the pages simply stack. The engine removes this list once it has cloned them. */
+.mag .mag__src{display:grid;gap:28px;max-width:560px;margin:0 auto;padding:96px 16px 64px}
+.mag p{max-width:none}
+/* A page is a container; everything inside sizes in cqw so it scales with the magazine. */
+.mag .pg{position:relative;box-sizing:border-box;container-type:inline-size;overflow:hidden;aspect-ratio:1/1.3;width:100%;
+  background:var(--paper-100);color:var(--text-1);font-family:var(--font-sans);}
+.mag .pg *{box-sizing:border-box}
+.mag .pg img,
+.mag .pg video{display:block;width:100%;height:100%;object-fit:cover}
+.mag .pg a{color:inherit}
+.mag .pg--paper{background:
+  radial-gradient(120cqw 90cqw at 0% 0%, var(--paper-100), var(--paper-200) 70%),
+  var(--paper-200);}
+.mag .pg--paper::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:radial-gradient(rgba(120,80,90,.07) .5px, transparent .6px);background-size:3px 3px}
+
+.mag .kicker{font:700 2.6cqw/1.2 var(--font-type);letter-spacing:.14em;text-transform:uppercase;color:var(--pink-deep);margin:0}
+.mag .kicker--light{color:#ffd9ea}
+.mag .hd{font-family:var(--font-display);font-weight:400;line-height:.9;margin:0;text-wrap:balance;letter-spacing:-.005em}
+.mag .hd--xl{font-size:17cqw}.mag .hd--lg{font-size:12cqw}
+.mag .hd--light{color:var(--paper-100)}
+.mag .folio{position:absolute;bottom:3cqw;right:4.5cqw;font:700 2.4cqw var(--font-type);color:var(--text-3);z-index:3}
+.mag .pg--paper .folio:nth-child(odd){}
+.mag .folio--light{color:#ffd9ea}
+.mag .more{position:absolute;left:6cqw;bottom:3.2cqw;z-index:3;font:700 2.9cqw var(--font-type);letter-spacing:.06em;text-transform:uppercase;
+  color:var(--pink-deep)!important;text-decoration:none;border-bottom:.35cqw solid currentColor;padding-bottom:.4cqw}
+.mag .more:hover,
+.mag .more:focus-visible{color:var(--text-1)!important}
+.mag .more--light{color:#ffd9ea!important}.mag .more--light:hover{color:#fff!important}
+.mag .hand{font-family:var(--font-hand);color:var(--pink-deep);font-size:inherit;line-height:1.1}
+
+/* taped snapshot */
+.mag .snap{position:absolute;margin:0;background:var(--paper-100);padding:1.4cqw 1.4cqw 0;transform:rotate(var(--r,0deg));
+  box-shadow:0 .6cqw 1.8cqw rgba(60,20,40,.22),0 .1cqw .3cqw rgba(60,20,40,.2)}
+.mag .snap img{aspect-ratio:4/5;height:auto}
+.mag .snap figcaption{font:600 3.6cqw/1 var(--font-hand);color:var(--text-2);padding:1.2cqw .4cqw 1.6cqw;text-align:center}
+.mag .snap::before{content:"";position:absolute;top:-2cqw;left:50%;width:14cqw;height:4cqw;transform:translateX(-50%) rotate(-3deg);
+  background:color-mix(in srgb,var(--mint) 45%,transparent);box-shadow:0 .1cqw .2cqw rgba(0,0,0,.08);z-index:2}
+
+/* ── COVER ── */
+.mag .pg--cover{background:var(--night);color:var(--paper-100)}
+.mag .cover__media{position:absolute;inset:0}
+.mag .cover__media img,
+.mag .cover__media video{position:absolute;inset:0}
+.mag .cover__media video{transform:scale(1.9) translateY(4%)}
+.mag .cover__media img{transform:scale(1.9) translateY(4%)}
+.mag .pg--cover::before{content:"";position:absolute;inset:0;z-index:1;background:
+  linear-gradient(180deg,rgba(28,18,40,.72) 0%,rgba(28,18,40,0) 34%,rgba(28,18,40,0) 55%,rgba(28,18,40,.85) 100%)}
+.mag .cover__top{position:absolute;z-index:2;top:3.5cqw;left:0;right:0;text-align:center}
+.mag .mast{font-family:var(--font-display);font-weight:400;font-size:38cqw;line-height:.82;margin:.6cqw 0 0;white-space:nowrap;letter-spacing:-.01em;
+  color:var(--paper-100);text-shadow:0 .5cqw 3cqw rgba(0,0,0,.25)}
+.mag .cover__roles{font:700 2.8cqw var(--font-type);letter-spacing:.2em;text-transform:uppercase;margin:1.4cqw 0 0;color:#ffd9ea}
+.mag .cover__lines{position:absolute;z-index:2;left:5cqw;top:56cqw;margin:0;padding:0;list-style:none;display:grid;gap:2.4cqw;width:42cqw}
+.mag .cover__lines li{font:500 2.8cqw/1.25 var(--font-sans);color:#f7e8ef}
+.mag .cover__lines b{display:block;font:400 5.6cqw/.95 var(--font-display);color:var(--paper-100);text-transform:uppercase}
+.mag .cover__lines li:first-child b{color:#ff9cc9}
+.mag .sticker{position:absolute;z-index:2;right:5cqw;top:60cqw;width:25cqw;height:25cqw;border-radius:50%;background:var(--pink);
+  display:grid;place-content:center;text-align:center;transform:rotate(12deg);box-shadow:0 1cqw 3cqw rgba(0,0,0,.35);
+  font:700 2.2cqw/1.1 var(--font-type);text-transform:uppercase;letter-spacing:.08em;color:#fff}
+.mag .sticker b{font:400 10cqw/1 var(--font-display);letter-spacing:0}
+.mag .cover__foot{position:absolute;z-index:2;left:5cqw;right:5cqw;bottom:4.5cqw;display:flex;align-items:flex-end;justify-content:space-between;gap:4cqw}
+.mag .cta{display:inline-block;background:var(--pink);color:#fff!important;text-decoration:none;font:400 5.2cqw/1 var(--font-display);
+  text-transform:uppercase;letter-spacing:.02em;padding:3cqw 4.6cqw;border-radius:99cqw;box-shadow:0 .8cqw 0 var(--pink-deep);
+  transition:transform .15s,box-shadow .15s}
+.mag .cta:hover,
+.mag .cta:focus-visible{transform:translateY(.4cqw);box-shadow:0 .4cqw 0 var(--pink-deep)}
+.mag .cta--block{display:block;text-align:center}
+.mag .barcode{background:#fff;padding:1.4cqw 1.6cqw 1cqw;display:grid;gap:.6cqw;width:24cqw}
+.mag .barcode i{display:block;height:8cqw;background:repeating-linear-gradient(90deg,#111 0 .35cqw,transparent .35cqw .7cqw,#111 .7cqw 1.5cqw,transparent 1.5cqw 1.9cqw,#111 1.9cqw 2.2cqw,transparent 2.2cqw 2.9cqw)}
+.mag .barcode span{font:700 1.8cqw var(--font-type);color:#111;text-align:center;letter-spacing:.1em}
+.mag .barcode--ink{background:transparent;padding:0}
+
+/* ── CONTENTS ── */
+.mag .pg--toc{padding:7cqw 6cqw}
+.mag .pg--toc .hd{margin:1cqw 0 3cqw;color:var(--text-1)}
+.mag .toc{list-style:none;margin:0;padding:0;display:grid;gap:0;width:62cqw;position:relative;z-index:2}
+.mag .toc a{display:grid;grid-template-columns:11cqw 1fr;align-items:baseline;gap:2cqw;text-decoration:none;padding:1.25cqw 0;border-top:.25cqw solid var(--text-1)}
+.mag .toc li:last-child a{border-bottom:.25cqw solid var(--text-1)}
+.mag .toc b{font:400 6cqw/1 var(--font-display);color:var(--pink-deep)}
+.mag .toc span{font:700 3.4cqw/1.1 var(--font-sans);text-transform:uppercase;letter-spacing:.01em}
+.mag .toc em{display:block;font:400 2.6cqw/1.3 var(--font-sans);font-style:italic;text-transform:none;color:var(--text-2);letter-spacing:0}
+.mag .toc a:hover span,
+.mag .toc a:focus-visible span{color:var(--pink-deep)}
+.mag .snap--toc{width:30cqw;right:5cqw;bottom:14cqw}
+
+/* ── ABOUT ── */
+.mag .about__photo{position:absolute;left:0;right:0;top:0;height:60cqw}
+.mag .about__photo img{object-position:50% 30%}
+.mag .hd--band{position:absolute;left:5cqw;top:51cqw;z-index:2;font-size:9.5cqw;width:80cqw;color:var(--text-1);
+  background:var(--ground-3);padding:2cqw 3cqw 1.6cqw;transform:rotate(-2deg);box-shadow:0 .8cqw 2cqw rgba(80,30,50,.18)}
+.mag .about__body{position:absolute;left:6cqw;right:6cqw;top:79cqw;display:grid;grid-template-columns:1.3fr 1fr;gap:4cqw;font:400 2.9cqw/1.45 var(--font-sans);color:var(--text-2)}
+.mag .about__body p{margin:0}
+.mag .dropcap::first-letter{float:left;font:400 12cqw/.8 var(--font-display);color:var(--pink-deep);margin:.6cqw 1.4cqw 0 0}
+.mag .about__body blockquote{margin:0;font:600 4.3cqw/1.05 var(--font-hand);color:var(--pink-deep)}
+
+/* ── EXPERIENCE ── */
+.mag .pg--exp{padding:7cqw 6cqw}
+.mag .pg--exp .hd{margin:1cqw 0 3cqw}
+.mag .exp{list-style:none;margin:0;padding:0;width:52cqw;display:grid;position:relative;z-index:2}
+.mag .exp li{display:grid;padding:2cqw 0;border-top:.25cqw dashed var(--text-3)}
+.mag .exp b{font:400 5cqw/1 var(--font-display);text-transform:uppercase}
+.mag .exp span{font:700 2.6cqw/1.4 var(--font-type);letter-spacing:.08em;text-transform:uppercase;color:var(--pink-deep)}
+.mag .snap--exp1{width:34cqw;right:5cqw;top:10cqw}
+.mag .snap--exp2{width:28cqw;right:12cqw;top:66cqw}
+.mag .snap--exp2 img{aspect-ratio:1}
+
+/* ── AUDIO ── */
+.mag .pg--audio{padding:5cqw 6cqw}
+.mag .audio__frame{position:relative;height:58cqw;margin:0 -1cqw 5cqw;transform:rotate(-1.5deg);background:#000;box-shadow:0 1cqw 3cqw rgba(60,20,40,.25);border:1.6cqw solid var(--paper-100)}
+.mag .audio__frame video,
+.mag .audio__frame .vstill{position:absolute;inset:0}
+.mag .tape{position:absolute;z-index:2;width:15cqw;height:4.5cqw;background:color-mix(in srgb,var(--pink) 40%,transparent)}
+.mag .tape--tl{top:-3cqw;left:-4cqw;transform:rotate(-32deg)}.mag .tape--br{bottom:-3cqw;right:-4cqw;transform:rotate(-32deg)}
+.mag .pg--audio .hd{margin:1cqw 0 3cqw}
+.mag .rates{margin:0;display:grid;width:58cqw}
+.mag .rates div{display:flex;justify-content:space-between;align-items:baseline;border-top:.25cqw solid var(--text-1);padding:1.6cqw 0}
+.mag .rates dt{font:700 3.3cqw var(--font-sans);text-transform:uppercase}
+.mag .rates dd{margin:0;font:400 5cqw/1 var(--font-display);color:var(--pink-deep);font-variant-numeric:tabular-nums}
+.mag .rates small{font:700 2.2cqw var(--font-type);color:var(--text-3);margin-left:1cqw}
+.mag .tools{font:700 2.5cqw/1.5 var(--font-type);color:var(--text-2);letter-spacing:.06em;text-transform:uppercase;margin:3cqw 0 0;width:60cqw}
+.mag .badge{position:absolute;right:6cqw;top:74cqw;width:23cqw;height:23cqw;border-radius:50%;border:.5cqw dashed var(--violet-deep);
+  display:grid;place-content:center;text-align:center;font:400 4.6cqw/1 var(--font-display);color:var(--violet-deep);transform:rotate(-10deg)}
+.mag .badge small{font:700 1.9cqw var(--font-type);letter-spacing:.1em;text-transform:uppercase;margin-top:1cqw}
+
+/* ── MUSIC ── */
+.mag .pg--night{background:radial-gradient(90cqw 90cqw at 80% 70%, #3b1f55, var(--night) 70%);color:var(--paper-100)}
+.mag .pg--music{padding:7cqw 6cqw}
+.mag .pg--music .hd{margin-top:1cqw;position:relative;z-index:2}
+.mag .eq{position:absolute;left:0;right:0;bottom:0;width:100%;height:34cqw;z-index:0;opacity:.9;pointer-events:none}
+.mag .vinyl{position:absolute;z-index:1;right:-18cqw;top:40cqw;width:84cqw;aspect-ratio:1;border-radius:50%;
+  background:radial-gradient(circle,var(--pink) 0 15%,#111 15.3% 16.5%,transparent 16.6%),
+  repeating-radial-gradient(circle,#161018 0 .5cqw,#221a26 .5cqw .8cqw);box-shadow:0 2cqw 5cqw rgba(0,0,0,.5);
+  display:grid;place-items:center;animation:spin 1.8s linear infinite;animation-play-state:paused}
+.mag .pg--music.playing .vinyl{animation-play-state:running}
+.mag .vinyl::after{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 30deg,transparent 0 20%,rgba(255,255,255,.12) 25%,transparent 32% 70%,rgba(255,255,255,.08) 75%,transparent 80%)}
+.mag .vinyl span{font:400 4cqw var(--font-display);color:#fff;letter-spacing:.05em}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* tonearm swings onto the record when the song plays */
+.mag .arm{position:absolute;z-index:2;left:94cqw;top:38cqw;width:1cqw;height:60cqw;background:linear-gradient(90deg,#cfc6cf,#fff,#a79ca8);
+  border-radius:1cqw;transform-origin:50% 0;transform:rotate(-14deg);transition:transform 1.1s cubic-bezier(.3,.9,.3,1.1);box-shadow:.6cqw .8cqw 1.4cqw rgba(0,0,0,.4)}
+.mag .arm::before{content:"";position:absolute;left:50%;top:-3cqw;width:7cqw;height:7cqw;margin-left:-3.5cqw;border-radius:50%;background:radial-gradient(circle,#fff 0 25%,#8d8290 26% 60%,#5c5260 61%)}
+.mag .arm::after{content:"";position:absolute;left:50%;bottom:-2cqw;width:3.6cqw;height:6cqw;margin-left:-1.8cqw;border-radius:.6cqw;background:var(--pink);box-shadow:0 .4cqw .8cqw rgba(0,0,0,.4)}
+.mag .pg--music.playing .arm{transform:rotate(15deg)}
+.mag .player{position:absolute;z-index:3;left:6cqw;top:57cqw;display:flex;align-items:center;gap:3cqw;width:52cqw}
+.mag .play{flex:none;width:15cqw;height:15cqw;border-radius:50%;border:0;background:var(--pink);cursor:pointer;display:grid;place-items:center;
+  box-shadow:0 .8cqw 0 var(--pink-deep),0 0 0 0 rgba(212,72,143,.6);transition:transform .15s,box-shadow .15s}
+.mag .play:hover{transform:translateY(.3cqw);box-shadow:0 .5cqw 0 var(--pink-deep)}
+.mag .pg--music:not(.playing) .play{animation:ping 2.2s ease-out infinite}
+@keyframes ping{0%{box-shadow:0 .8cqw 0 var(--pink-deep),0 0 0 0 rgba(212,72,143,.55)}70%,100%{box-shadow:0 .8cqw 0 var(--pink-deep),0 0 0 4cqw rgba(212,72,143,0)}}
+.mag .play__i{width:0;height:0;border-style:solid;border-width:2.6cqw 0 2.6cqw 4.2cqw;border-color:transparent transparent transparent #fff;margin-left:1cqw}
+.mag .pg--music.playing .play__i{width:4cqw;height:5cqw;border:0;margin:0;background:linear-gradient(90deg,#fff 0 35%,transparent 35% 65%,#fff 65%)}
+.mag .np{display:grid;gap:.6cqw;min-width:0;flex:1}
+.mag .np b{font:400 6cqw/1 var(--font-display);color:#fff}
+.mag .np span{font:700 2.3cqw var(--font-type);letter-spacing:.1em;text-transform:uppercase;color:#ffd9ea}
+.mag .prog{display:block;height:.8cqw;background:rgba(255,255,255,.18);border-radius:1cqw;overflow:hidden;margin-top:1cqw}
+.mag .prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--pink),var(--mint))}
+.mag .np__t{font:700 2.2cqw var(--font-type);font-style:normal;color:#f2dcea;font-variant-numeric:tabular-nums}
+.mag .music__dek{position:absolute;left:6cqw;top:79cqw;width:40cqw;font:500 3.2cqw/1.4 var(--font-sans);color:#f2dcea;margin:0;z-index:2}
+
+/* ── MY WORK ── */
+.mag .pg--work{padding:6cqw 5cqw;background:var(--ground-2)}
+.mag .ransom{margin:0 0 2cqw;display:flex;flex-wrap:wrap;gap:.8cqw;align-items:center;position:relative;z-index:3}
+.mag .ransom i{font-style:normal;display:inline-block;padding:.6cqw 1.6cqw;line-height:1;box-shadow:0 .3cqw .6cqw rgba(0,0,0,.15)}
+.mag .ransom i:nth-child(6n+1){font:400 11cqw var(--font-display);background:var(--text-1);color:var(--paper-100);transform:rotate(-4deg)}
+.mag .ransom i:nth-child(6n+2){font:700 italic 10cqw Georgia,serif;background:var(--paper-100);color:var(--pink-deep);transform:rotate(3deg)}
+.mag .ransom i:nth-child(6n+3){font:700 10cqw var(--font-type);background:var(--mint);color:var(--text-1);transform:rotate(-2deg)}
+.mag .ransom i:nth-child(6n+4){font:400 11cqw var(--font-display);background:var(--pink);color:#fff;transform:rotate(5deg)}
+.mag .ransom i:nth-child(6n+5){font:900 10cqw var(--font-sans);background:var(--paper-300);color:var(--violet-deep);transform:rotate(-5deg)}
+.mag .ransom i:nth-child(6n){font:600 12cqw var(--font-hand);background:#fff7b8;color:var(--text-1);transform:rotate(2deg)}
+.mag .wall{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:3.5cqw 2.5cqw;margin-top:4cqw}
+.mag .wall .snap{position:relative}
+.mag .wall .snap figcaption{font-size:3.3cqw}
+
+/* ── DJ ── */
+.mag .pg--dj{background:var(--night);color:var(--paper-100)}
+.mag .pg--dj video,
+.mag .pg--dj .vstill{position:absolute;inset:0}
+.mag .pg--dj::before{content:"";position:absolute;inset:0;z-index:1;background:linear-gradient(0deg,rgba(28,18,40,.9),rgba(28,18,40,.1) 60%)}
+.mag .dj__copy{position:absolute;z-index:2;left:6cqw;right:6cqw;bottom:12cqw}
+.mag .hd--outline{font-size:26cqw;color:transparent;-webkit-text-stroke:.5cqw #fff;line-height:.85;margin:1cqw 0 3cqw}
+.mag .dj__dek{font:500 3.6cqw/1.4 var(--font-sans);width:62cqw;margin:0 0 6cqw;color:#f2dcea}
+.mag .dj__copy .more{position:static}
+
+/* ── BOOK ── */
+.mag .pg--book{padding:5cqw}
+.mag .cutline{position:absolute;left:0;right:0;top:5cqw;border-top:.4cqw dashed var(--text-3);z-index:3}
+.mag .cutline span{position:absolute;left:4cqw;top:-3.4cqw;font-size:5cqw;color:var(--text-2);background:var(--paper-200);padding:0 1cqw}
+.mag .card{position:relative;z-index:2;margin-top:6cqw;background:var(--paper-100);border:.5cqw solid var(--text-1);padding:5cqw;box-shadow:1.4cqw 1.4cqw 0 var(--pink)}
+.mag .ransom--sm i{font-size:7.4cqw!important;padding:.4cqw 1.1cqw}
+.mag .checks{list-style:none;margin:4cqw 0;padding:0;display:grid;gap:2.2cqw}
+.mag .checks li{display:grid;grid-template-columns:5cqw 1fr auto;gap:2cqw;align-items:center;font:700 3.5cqw var(--font-sans)}
+.mag .checks em{font:700 2.6cqw var(--font-type);font-style:normal;color:var(--pink-deep);letter-spacing:.04em}
+.mag .box{width:4.6cqw;height:4.6cqw;border:.4cqw solid var(--text-1);display:grid;place-items:center;font-size:3.6cqw;color:var(--pink-deep)}
+.mag .fine{font:400 2.6cqw/1.5 var(--font-type);color:var(--text-2);margin:0 0 4cqw}
+
+/* ── BACK COVER ── */
+.mag .pg--back{background:var(--pink);color:#fff;padding:8cqw 6cqw}
+.mag .pg--back .kicker{color:#ffe3f0}
+.mag .pg--back .hd{font-size:15cqw;margin:2cqw 0 6cqw}
+.mag .contact{list-style:none;margin:0;padding:0;display:grid}
+.mag .contact li{display:grid;grid-template-columns:22cqw minmax(0,1fr);align-items:baseline;padding:2.2cqw 0;border-top:.3cqw solid rgba(255,255,255,.6)}
+.mag .contact span{font:700 2.6cqw var(--font-type);letter-spacing:.12em;text-transform:uppercase;color:#ffe3f0}
+.mag .contact a,
+.mag .contact b{font:700 3.5cqw var(--font-sans);color:#fff;text-decoration:none;overflow-wrap:anywhere}
+.mag .contact a:hover{text-decoration:underline}
+.mag .pg--back .hand{color:#fff;font-size:7cqw;margin:6cqw 0 0;transform:rotate(-3deg)}
+.mag .back__foot{position:absolute;left:6cqw;right:6cqw;bottom:6cqw;display:flex;justify-content:space-between;align-items:flex-end}
+.mag .mast--sm{font-size:14cqw;line-height:.8;margin:0}
+.mag .barcode--ink i{filter:invert(1);height:8cqw}
+.mag .barcode--ink span{color:#fff}
+
+@media (prefers-reduced-motion:reduce){.mag .vinyl{animation:none}}
+
+
+.mag.desk{background:
+  radial-gradient(80vw 60vh at 50% 45%, var(--ground-0), transparent 70%),
+  repeating-linear-gradient(90deg, rgba(160,90,110,.04) 0 2px, transparent 2px 7px),
+  var(--ground-2)}
+
+
+/* ── top bar ── */
+.mag .bar{position:fixed;top:0;left:0;right:0;z-index:50;display:flex;align-items:center;gap:12px;
+  padding:calc(10px + env(safe-area-inset-top,0px)) 16px 10px;pointer-events:none}
+.mag .bar > *{pointer-events:auto}
+.mag .logo{font:400 26px/1 var(--font-display);color:var(--text-1);text-decoration:none;letter-spacing:.01em}
+.mag .where{font:700 12px var(--font-type);letter-spacing:.12em;text-transform:uppercase;color:var(--text-2);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mag .where b{color:var(--pink-deep)}
+.mag .pill{font:700 12px var(--font-type);letter-spacing:.1em;text-transform:uppercase;border-radius:99px;padding:10px 16px;cursor:pointer;
+  background:var(--paper-100);border:2px solid var(--text-1);color:var(--text-1)}
+.mag .pill[aria-pressed="true"]{background:var(--text-1);color:var(--paper-100)}
+.mag .menu{position:relative}
+.mag .bar .book{background:var(--pink);color:#fff;border:2px solid var(--pink);text-decoration:none;box-shadow:0 3px 0 var(--pink-deep)}
+.mag .menu ol{position:absolute;right:0;top:calc(100% + 8px);margin:0;padding:8px;list-style:none;background:var(--paper-100);
+  border:2px solid var(--text-1);box-shadow:6px 6px 0 var(--pink);min-width:230px;display:grid;transform-origin:100% 0;
+  animation:menuIn .22s var(--out)}
+.mag .menu ol[hidden]{display:none}
+@keyframes menuIn{from{opacity:0;transform:translateY(-6px) scale(.97)}}
+.mag .menu li{animation:menuItem .3s var(--out) backwards;animation-delay:calc(var(--i) * 22ms)}
+@keyframes menuItem{from{opacity:0;transform:translateX(8px)}}
+.mag .menu li a{display:grid;grid-template-columns:34px 1fr;padding:8px 10px;text-decoration:none;color:var(--text-1);font:700 14px var(--font-sans)}
+.mag .menu li a b{font:400 16px var(--font-display);color:var(--pink-deep)}
+.mag .menu li a:hover,
+.mag .menu li a:focus-visible,
+.mag .menu li a[aria-current]{background:var(--ground-2)}
+.mag :focus-visible{outline:3px solid var(--violet);outline-offset:2px}
+
+/* ── the flip mechanic ── */
+.mag .track{position:relative}
+.mag .snappt{position:absolute;left:0;width:1px;height:1px;scroll-snap-align:start}
+.mag .stage{position:sticky;top:0;height:100vh;height:100svh;display:grid;place-items:center;perspective:1800px;perspective-origin:50% 45%;overflow:hidden}
+.mag .drop{transform-style:preserve-3d;animation:drop 1.25s var(--out) both}
+@keyframes drop{
+  0%{opacity:0;transform:translateY(55vh) rotateX(38deg) rotateZ(-9deg) scale(.9)}
+  60%{opacity:1}
+  100%{transform:none}}
+.mag .book-el{position:relative;transform-style:preserve-3d;will-change:transform}
+.mag .leaf{position:absolute;top:0;transform-origin:0 50%;transform-style:preserve-3d}
+.mag .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.mag .face--back{transform:rotateY(180deg)}
+/* The front face needs a 3D position of its own. Left exactly flat in its leaf, Chrome's click
+   targeting stops at the face and never reaches the links printed on the page. */
+.mag .face--front{transform:translateZ(.01px)}
+.mag .face .pg{width:100%;height:100%;aspect-ratio:auto}
+.mag .face--blank{background:var(--paper-300)}
+/* shading on the turning page: dark at the spine, a soft gloss where the paper bends */
+.mag .shade,
+.mag .cast{position:absolute;inset:0;pointer-events:none;opacity:0}
+.mag .shade{z-index:40}
+.mag .face--front .shade{background:linear-gradient(90deg,rgba(40,10,30,.6),rgba(40,10,30,.12) 45%,rgba(255,255,255,.22) 78%,rgba(255,255,255,0) 96%)}
+.mag .face--back .shade{background:linear-gradient(270deg,rgba(40,10,30,.6),rgba(40,10,30,.12) 45%,rgba(255,255,255,.22) 78%,rgba(255,255,255,0) 96%)}
+/* the lifted page's shadow falling on the page underneath */
+.mag .cast{z-index:41;will-change:transform,opacity}
+.mag .face--front .cast{transform-origin:0 50%;background:linear-gradient(90deg,rgba(40,10,30,.42),rgba(40,10,30,.18) 70%,rgba(40,10,30,0))}
+.mag .face--back .cast{transform-origin:100% 50%;background:linear-gradient(270deg,rgba(40,10,30,.42),rgba(40,10,30,.18) 70%,rgba(40,10,30,0))}
+/* gutter at the spine */
+.mag .face--front::after{content:"";position:absolute;inset:0 auto 0 0;width:8%;z-index:39;pointer-events:none;background:linear-gradient(90deg,rgba(60,20,40,.28),transparent)}
+.mag .face--back::after{content:"";position:absolute;inset:0 0 0 auto;width:8%;z-index:39;pointer-events:none;background:linear-gradient(270deg,rgba(60,20,40,.28),transparent)}
+
+
+/* ── the body of the magazine: real thickness, a printed spine, a shadow on the desk ── */
+.mag .blk{position:absolute;pointer-events:none}
+/* fore-edges: the stacked paper you see along the outside edge */
+.mag .fe{top:0;transform-origin:0 50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(0,0,0,0) 30%,rgba(60,20,40,.12)),
+             repeating-linear-gradient(90deg,#fdf6f1 0 1px,#e3d0c8 1px 2px)}
+/* bottom edges: seen from above because the magazine leans back on the desk */
+.mag .bt{transform-origin:50% 0;
+  background:linear-gradient(90deg,rgba(60,20,40,.18),rgba(60,20,40,.04) 12%,rgba(60,20,40,.04) 88%,rgba(60,20,40,.18)),
+             repeating-linear-gradient(180deg,#f4e7e1 0 1px,#d9c4bc 1px 2px)}
+/* the spine: perfect-bound, slightly rounded, printed like a real issue */
+.mag .spine{top:0;display:grid;place-items:center;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  background:linear-gradient(90deg,#120a1a,#2c1a3d 30%,#3a2350 50%,#2c1a3d 70%,#120a1a)}
+.mag .spine--l{transform-origin:0 50%}.mag .spine--r{transform-origin:100% 50%}
+.mag .spine i{font-style:normal;writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;display:flex;align-items:center;gap:1.2em;
+  font:700 var(--sp-fs,10px)/1 var(--font-type);letter-spacing:.18em;text-transform:uppercase;color:#f2dcea}
+.mag .spine i b{font:400 calc(var(--sp-fs,10px) * 1.9)/1 var(--font-display);letter-spacing:.04em;color:var(--pink)}
+.mag .spine i em{font-style:normal;color:var(--mint)}
+.mag .bshadow{position:absolute;top:0;pointer-events:none;transform:translateZ(-2px);
+  box-shadow:0 30px 55px rgba(70,20,45,.30),0 8px 16px rgba(70,20,45,.16);transition:none}
+
+/* while any page is turning, videos are replaced by a canvas holding their current frame.
+   Playing video is often handed to the GPU as an overlay plane that ignores 3D stacking,
+   which is what made the After Dark clip punch through the page turning over it. */
+.mag .vfreeze{position:absolute;pointer-events:none;display:none}
+.mag .pg--dj .vpost,
+.mag .audio__frame .vpost{position:absolute;inset:0}
+.mag .book-el.moving .face video{visibility:hidden}
+.mag .book-el.moving .vfreeze{display:block}
+
+/* ── the bending page: while a leaf turns, it's drawn as a chain of hinged strips so the paper curls ── */
+.mag .curl{position:absolute;top:0;transform-style:preserve-3d;pointer-events:none}
+.mag .curl[hidden]{display:none}
+.mag .strip{position:absolute;top:0;transform-style:preserve-3d;transform-origin:0 50%}
+.mag .sl{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.mag .sl--b{transform:rotateY(180deg)}
+.mag .sl--blank{background:var(--paper-300)}
+.mag .sl > .pg{position:absolute;top:0;aspect-ratio:auto;max-width:none}
+.mag .sl *{animation:none!important;transition:none!important}
+.mag .strip{will-change:transform}
+/* one light layer per strip face, exactly one strip wide (never over the overlap), with its
+   brightness blended edge-to-edge so neighbouring strips meet without a step */
+.mag .sshade{position:absolute;top:0;bottom:0;pointer-events:none;z-index:40}
+.mag .sl--spine.sl--f::after{content:"";position:absolute;inset:0;z-index:39;background:linear-gradient(90deg,rgba(60,20,40,.3),transparent)}
+.mag .sl--spine.sl--b::after{content:"";position:absolute;inset:0;z-index:39;background:linear-gradient(270deg,rgba(60,20,40,.3),transparent)}
+.mag .pg--music .kicker{position:relative;z-index:2}
+.mag .face:not(.is-open) .arm.anim{translate:30cqw -10cqw;opacity:0}
+
+/* ── page content choreography: things land when a page comes into view ── */
+.mag .anim{transition:none}
+.mag .face.is-open .anim{transition:opacity .5s ease,translate .8s var(--spring),rotate .8s var(--spring),scale .8s var(--spring),clip-path .9s var(--out);
+  transition-delay:calc(var(--d,0) * 55ms + 80ms)}
+.mag .face:not(.is-open) .anim{opacity:0;translate:0 2.4cqw}
+.mag .face:not(.is-open) .hd.anim{opacity:1;translate:0 4cqw;clip-path:inset(0 0 100% 0)}
+.mag .hd.anim{clip-path:inset(-10% -10% -10% -10%)}
+.mag .face:not(.is-open) .snap.anim{translate:0 -7cqw;rotate:12deg;scale:1.12}
+.mag .face:not(.is-open) .ransom i.anim{scale:0;rotate:-30deg;opacity:0}
+.mag .face:not(.is-open) .sticker.anim{scale:2.4;rotate:40deg}
+.mag .face:not(.is-open) .vinyl.anim{translate:40cqw 0;rotate:-120deg}
+.mag .face:not(.is-open) .mast .ml{translate:0 18cqw;opacity:0}
+.mag .face:not(.is-open) .audio__frame.anim,
+.mag .face:not(.is-open) .card.anim{translate:0 6cqw;rotate:-4deg}
+.mag .face:not(.is-open) .badge.anim{scale:0;rotate:-90deg}
+.mag .face:not(.is-open) .box.anim{scale:.2}
+.mag .mast .ml{display:inline-block}
+.mag .face.is-open .mast .ml{transition:opacity .4s ease,translate .9s var(--spring);transition-delay:calc(var(--d) * 80ms + 60ms)}
+.mag .face:not(.is-open) .vinyl{animation-play-state:paused}
+.mag .face.instant .anim,
+.mag .face.instant .mast .ml{transition:none!important}
+
+.mag .hint{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));translate:-50% 0;z-index:40;
+  font:700 11px var(--font-type);letter-spacing:.16em;text-transform:uppercase;color:var(--text-2);background:var(--paper-100);
+  padding:8px 14px;border-radius:99px;border:1.5px solid var(--text-3);transition:opacity .4s;animation:bob 2.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.mag .dots{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:40;display:grid;gap:8px}
+.mag .dots button{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--text-1);background:transparent;padding:0;cursor:pointer;transition:transform .25s var(--spring),background .2s}
+.mag .dots button[aria-current]{background:var(--pink);border-color:var(--pink);transform:scale(1.35)}
+@media (max-width:760px){.mag .where,
+.mag .dots{display:none}.mag .bar{gap:8px}.mag .pill{padding:9px 11px;font-size:11px}}
+@media (prefers-reduced-motion:reduce){
+  .mag .drop,
+.mag .hint{animation:none}
+  .mag .face:not(.is-open) .anim,
+.mag .face:not(.is-open) .mast .ml{opacity:1!important;translate:none!important;rotate:none!important;scale:none!important;clip-path:none!important}
+}

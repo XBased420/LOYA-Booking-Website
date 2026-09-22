@@ -1,0 +1,200 @@
+---
+/* ═══════════════════════════════════════════════════════════════
+   THE ISSUE — every page of the homepage magazine, in reading order.
+
+   This markup is the SOURCE: scripts/magazine.ts reads these ten
+   <article class="pg"> elements, clones them onto the leaves of the
+   3D magazine, and removes this list. With JavaScript off, the list
+   simply stays on screen as ten stacked pages, so nothing is lost.
+
+   Facts come from data/ (site.ts, booking.ts, work.ts) wherever they
+   exist, so a price or handle is only ever changed in one place.
+   Each page's `data-title` / `data-num` feed the Contents menu and the
+   "p. 04 Experience" label in the top bar.
+   ═══════════════════════════════════════════════════════════════ */
+import { u } from "../../lib/url";
+import { site, experience, contactChannels, channelHref, isPlaceholder } from "../../data/site";
+import { rateLines, bookableServices, deposit, paymentMethods } from "../../data/booking";
+import { backgroundTrack as track } from "../../data/work";
+
+/** Responsive photo sources: every image in public/media/img has 800/1200 widths. */
+const img = (name: string) => ({
+  src: u(`/media/img/${name}-800.webp`),
+  srcset: `${u(`/media/img/${name}-800.webp`)} 800w, ${u(`/media/img/${name}-1200.webp`)} 1200w`,
+  sizes: "(min-width: 760px) 34vw, 92vw",
+});
+
+const handle = `@${site.contact.instagram}`;
+const channels = contactChannels.filter((c) => !isPlaceholder(c.value));
+const money = (p: string | null) => p ?? "Request a quote";
+---
+
+<div class="mag__src">
+
+<!-- 00 COVER -->
+<article class="pg pg--cover" data-title="Cover" data-num="">
+  <div class="cover__media">
+    <img src={u("/media/poster/hero-loop.jpg")} alt="" decoding="async" fetchpriority="high" />
+    <video autoplay muted loop playsinline preload="metadata" poster={u("/media/poster/hero-loop.jpg")} aria-hidden="true" tabindex="-1">
+      <source src={u("/media/video/hero-loop-trim.webm")} type="video/webm" />
+      <source src={u("/media/video/hero-loop-trim.mp4")} type="video/mp4" />
+    </video>
+  </div>
+  <div class="cover__top">
+    <p class="kicker kicker--light">Issue 01 · Fall 2026 · {site.location.replace(", Texas", ", TX")}</p>
+    <h1 class="mast">{site.name}</h1>
+    <p class="cover__roles">{site.rolesLine}</p>
+  </div>
+  <ul class="cover__lines">
+    <li><b>Behind the board</b>From MediaTech to the SSL</li>
+    <li><b>After dark</b>Receptions, parties &amp; late nights on the decks</li>
+    <li><b>New music</b>Press play inside</li>
+  </ul>
+  <div class="sticker"><span>Studio time</span><b>$75</b><span>per hour</span></div>
+  <div class="cover__foot">
+    <a class="cta" href={u("/book")} data-go="8">Book a session →</a>
+    <div class="barcode" aria-hidden="true"><i></i><span>0 26400 01 LOYA</span></div>
+  </div>
+</article>
+
+<!-- 01 CONTENTS -->
+<article class="pg pg--paper pg--toc" data-title="Contents" data-num="02">
+  <p class="kicker">In this issue</p>
+  <h2 class="hd hd--xl">Contents</h2>
+  <ol class="toc">
+    <li><a href={u("/about")} data-go="2"><b>03</b><span>About<em>The girl behind the board</em></span></a></li>
+    <li><a href={u("/experience")} data-go="3"><b>04</b><span>Experience<em>Trained, then on the clock</em></span></a></li>
+    <li><a href={u("/audio-engineering")} data-go="4"><b>05</b><span>Audio Engineering<em>In the room, at the desk</em></span></a></li>
+    <li><a href={u("/music")} data-go="5"><b>06</b><span>Music<em>Now playing</em></span></a></li>
+    <li><a href={u("/archive")} data-go="6"><b>07</b><span>My Work<em>The wall, pinned up</em></span></a></li>
+    <li><a href={u("/dj-live-events")} data-go="7"><b>08</b><span>DJ + Live Events<em>After dark</em></span></a></li>
+    <li><a href={u("/book")} data-go="8"><b>09</b><span>Book a Session<em>Tear out &amp; send</em></span></a></li>
+    <li><a href={u("/contact")} data-go="9"><b>10</b><span>Contact<em>Say hi</em></span></a></li>
+  </ol>
+  <figure class="snap snap--toc" style="--r:4deg"><img {...img("headphones-portrait")} alt="Liz in headphones" /><figcaption>cans on, world off</figcaption></figure>
+  <span class="folio">02</span>
+</article>
+
+<!-- 02 ABOUT -->
+<article class="pg pg--paper pg--about" data-title="About" data-num="03">
+  <div class="about__photo"><img {...img("console-portrait")} alt="Liz at a large-format console" /></div>
+  <h2 class="hd hd--band">The girl behind the board</h2>
+  <div class="about__body">
+    <p class="dropcap">{site.firstName} Loya is a Dallas-based audio engineer, DJ and artist, trained in Recording Arts at MediaTech Institute. By day it’s vocals, routing and faders; by night it’s a crowd and a pair of decks.</p>
+    <blockquote>“{site.intro}”</blockquote>
+  </div>
+  <a class="more" href={u("/about")}>Read the full story →</a>
+  <span class="folio">03</span>
+</article>
+
+<!-- 03 EXPERIENCE -->
+<article class="pg pg--paper pg--exp" data-title="Experience" data-num="04">
+  <p class="kicker">Résumé, but make it a spread</p>
+  <h2 class="hd hd--xl">Trained.</h2>
+  <ul class="exp">
+    {experience.slice(0, 5).map((e) => <li><b>{e.org}</b><span>{e.role}</span></li>)}
+  </ul>
+  <figure class="snap snap--exp1" style="--r:-5deg"><img {...img("grad-diploma")} alt="Liz holding her diploma" /><figcaption>made it official</figcaption></figure>
+  <figure class="snap snap--exp2" style="--r:6deg"><img {...img("mediatech-building")} alt="MediaTech Institute building" /></figure>
+  <a class="more" href={u("/experience")}>Full experience →</a>
+  <span class="folio">04</span>
+</article>
+
+<!-- 04 AUDIO ENGINEERING -->
+<article class="pg pg--paper pg--audio" data-title="Audio Engineering" data-num="05">
+  <div class="audio__frame">
+    <img class="vstill" {...img("protools-ssl")} alt="" />
+    <video autoplay muted loop playsinline preload="metadata" poster={u("/media/img/protools-ssl-800.webp")} aria-hidden="true" tabindex="-1">
+      <source src={u("/media/video/studio-loop.mp4")} type="video/mp4" />
+    </video>
+    <span class="tape tape--tl"></span><span class="tape tape--br"></span>
+  </div>
+  <p class="kicker">Audio Engineering</p>
+  <h2 class="hd hd--lg">In the room.</h2>
+  <dl class="rates">
+    {rateLines.map((r) => <div><dt>{r.label}</dt><dd>{r.price} {r.note && r.label === "Studio time" && <small>{r.note.replace(" hour ", " hr ")}</small>}</dd></div>)}
+  </dl>
+  <p class="tools">Pro Tools · Logic Pro · FL Studio · Waves · Melodyne</p>
+  <div class="badge">Neumann<br />U 87<small>on the mic</small></div>
+  <a class="more" href={u("/audio-engineering")}>See the studio →</a>
+  <span class="folio">05</span>
+</article>
+
+<!-- 05 MUSIC -->
+<article class="pg pg--night pg--music" data-title="Music" data-num="06">
+  <canvas class="eq" aria-hidden="true"></canvas>
+  <p class="kicker kicker--light">Music</p>
+  <h2 class="hd hd--xl hd--light">Now<br />playing.</h2>
+  <div class="vinyl" aria-hidden="true"><span>{site.name}</span></div>
+  <div class="arm" aria-hidden="true"></div>
+  <div class="player">
+    <button class="play" type="button" aria-label={`Play ${track.title} by ${track.artist}`}><span class="play__i"></span></button>
+    <div class="np"><b>{track.title}</b><span>{track.artist} · original song</span><i class="prog"><i></i></i><em class="np__t">0:00</em></div>
+  </div>
+  <p class="music__dek">Written, recorded and mixed on the same boards you book.</p>
+  <a class="more more--light" href={u("/music")}>More on the music page →</a>
+  <span class="folio folio--light">06</span>
+</article>
+
+<!-- 06 MY WORK -->
+<article class="pg pg--paper pg--work" data-title="My Work" data-num="07">
+  <h2 class="ransom" aria-label="My Work"><i>M</i><i>Y</i> <i>W</i><i>O</i><i>R</i><i>K</i></h2>
+  <div class="wall">
+    <figure class="snap" style="--r:-4deg"><img {...img("grad-console-b")} alt="" /><figcaption>riding the faders</figcaption></figure>
+    <figure class="snap" style="--r:3deg"><img {...img("dj-reception")} alt="" /><figcaption>reception set</figcaption></figure>
+    <figure class="snap" style="--r:-2deg"><img {...img("protools-ssl")} alt="" /><figcaption>SSL + Pro Tools</figcaption></figure>
+    <figure class="snap" style="--r:5deg"><img {...img("live-stage")} alt="" /><figcaption>the live room</figcaption></figure>
+    <figure class="snap" style="--r:-6deg"><img {...img("event-clients")} alt="" /><figcaption>happy clients</figcaption></figure>
+    <figure class="snap" style="--r:2deg"><img {...img("piano-mic")} alt="" /><figcaption>mic’d the piano</figcaption></figure>
+  </div>
+  <a class="more" href={u("/archive")}>Open the archive →</a>
+  <span class="folio">07</span>
+</article>
+
+<!-- 07 DJ + LIVE -->
+<article class="pg pg--dj" data-title="DJ + Live Events" data-num="08">
+  <img class="vstill" {...img("dj-event")} alt="" />
+  <video autoplay muted loop playsinline preload="metadata" poster={u("/media/img/dj-event-800.webp")} aria-hidden="true" tabindex="-1">
+    <source src={u("/media/video/dj-loop.mp4")} type="video/mp4" />
+  </video>
+  <div class="dj__copy">
+    <p class="kicker kicker--light">DJ + Live Events</p>
+    <h2 class="hd hd--outline">After<br />dark</h2>
+    <p class="dj__dek">Receptions, private events and club nights. Event dates book at least two weeks out.</p>
+    <a class="more more--light" href={u("/dj-live-events")}>See the sets →</a>
+  </div>
+  <span class="folio folio--light">08</span>
+</article>
+
+<!-- 08 BOOK -->
+<article class="pg pg--paper pg--book" data-title="Book a Session" data-num="09">
+  <div class="cutline" aria-hidden="true"><span>✂</span></div>
+  <div class="card">
+    <h2 class="ransom ransom--sm" aria-label="Book a session"><i>B</i><i>O</i><i>O</i><i>K</i> <i>a</i> <i>S</i><i>E</i><i>S</i><i>S</i><i>I</i><i>O</i><i>N</i></h2>
+    <ul class="checks">
+      {bookableServices.filter((s) => s.slug !== "other").slice(0, 4).map((s, i) => (
+        <li><span class="box">{i === 0 ? "✓" : ""}</span>{s.label} <em>{money(s.price)}</em></li>
+      ))}
+      <li><span class="box"></span>Production · DJ / event <em>Request a quote</em></li>
+    </ul>
+    <p class="fine">50% non-refundable deposit holds your date; balance on arrival. {paymentMethods.join(", ")}. Studio needs 24 hours’ notice, events two weeks.</p>
+    <a class="cta cta--block" href={u("/book")}>Start booking →</a>
+  </div>
+  <span class="folio">09</span>
+</article>
+
+<!-- 09 BACK COVER -->
+<article class="pg pg--back" data-title="Contact" data-num="10">
+  <p class="kicker">Back cover · Contact</p>
+  <h2 class="hd hd--xl">{handle}</h2>
+  <ul class="contact">
+    {channels.map((c) => (
+      <li><span>{c.label}</span><a href={channelHref(c.key, String(c.value))} {...(c.key === "email" ? {} : { target: "_blank", rel: "me noopener noreferrer" })}>{c.key === "email" ? String(c.value) : `@${String(c.value).replace(/^@/, "")}`}</a></li>
+    ))}
+    <li><span>Studio</span><b>Dallas, TX · 8am – midnight</b></li>
+  </ul>
+  <p class="hand">see you in the studio — {site.firstName}</p>
+  <div class="back__foot"><span class="mast mast--sm">{site.name}</span><div class="barcode barcode--ink" aria-hidden="true"><i></i><span>ISSUE 01</span></div></div>
+</article>
+
+</div>
