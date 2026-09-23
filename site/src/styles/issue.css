@@ -1,0 +1,232 @@
+/* ═══════════════════════════════════════════════════════════════
+   ISSUE 01 — long-form magazine pages
+
+   The cover is a physical flipbook. The deeper routes are the same
+   publication opened flat: one continuous printed feature, with room for
+   forms, galleries and long copy. This keeps the magazine metaphor while
+   letting every control stay readable and usable.
+   ═══════════════════════════════════════════════════════════════ */
+
+body.issue-body {
+  min-height: 100vh;
+  background:
+    radial-gradient(80vw 54rem at 50% 10rem, rgba(255, 253, 252, .94), transparent 72%),
+    repeating-linear-gradient(90deg, rgba(160, 90, 110, .045) 0 2px, transparent 2px 7px),
+    var(--ground-2);
+}
+
+.issue-reader {
+  position: relative;
+  width: min(calc(100% - 2rem), 86rem);
+  margin: clamp(2rem, 5vw, 4.5rem) auto 0;
+  padding-left: clamp(.35rem, 1.2vw, 1rem);
+  filter: drop-shadow(0 1.2rem 2.4rem rgba(70, 20, 45, .14));
+}
+
+.issue-page {
+  position: relative;
+  isolation: isolate;
+  min-height: 80vh;
+  overflow: clip;
+  background:
+    linear-gradient(90deg, rgba(74, 34, 58, .06), transparent 2.6rem),
+    var(--paper-100);
+  color: var(--text-1);
+  border: 1px solid rgba(74, 34, 58, .22);
+  box-shadow:
+    2px 1px 0 var(--paper-300),
+    4px 2px 0 rgba(255, 253, 252, .9),
+    6px 3px 0 var(--paper-400),
+    10px 7px 0 rgba(173, 44, 109, .18);
+}
+
+.issue-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+  opacity: .028;
+  background-image: var(--grain-url);
+}
+
+.issue-page::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  z-index: 21;
+  width: clamp(.7rem, 2.2vw, 2.1rem);
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(55, 22, 44, .22), rgba(55, 22, 44, .06) 42%, transparent);
+}
+
+.issue-spine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 4;
+  width: clamp(.45rem, 1.1vw, .85rem);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  transform: translateX(-25%);
+  border-radius: 45% 0 0 45%;
+  background: linear-gradient(90deg, #120a1a, #402354 52%, #1d1027);
+  box-shadow: -.35rem .4rem 1rem rgba(40, 12, 30, .2);
+}
+
+.issue-spine span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  color: #f2dcea;
+  font: 700 clamp(.35rem, .58vw, .52rem)/1 var(--font-type);
+  letter-spacing: .16em;
+}
+
+.issue-spine b {
+  color: var(--pink);
+  font: 400 1.7em/1 var(--font-display);
+  letter-spacing: .04em;
+  margin-bottom: 1.6em;
+}
+
+.issue-spine i { color: var(--mint); font-style: normal; }
+
+.issue-page__head {
+  position: relative;
+  z-index: 3;
+  min-height: 4.5rem;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1rem;
+  margin: 0 clamp(1rem, 4vw, 3.25rem);
+  padding: 1rem 0 .8rem;
+  border-bottom: 2px solid var(--text-1);
+}
+
+.issue-page__mark {
+  color: var(--text-1);
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  text-decoration: none;
+}
+
+.issue-page__meta,
+.issue-page__section {
+  max-width: none;
+  margin: 0;
+  font-size: clamp(.66rem, 1vw, .78rem);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.issue-page__section { text-align: right; }
+.issue-page__section b { color: var(--pink-deep); }
+
+.issue-page__content {
+  position: relative;
+  z-index: 2;
+}
+
+/* The original pages already contain strong editorial layouts. Inside the
+   printed sheet, tighter gutters make their collage elements feel mounted
+   to a page instead of floating on the browser viewport. */
+.issue-page__content > .section:first-child,
+.issue-page__content > [class$="-hero"]:first-child,
+.issue-page__content > [class*="-hero "]:first-child {
+  padding-top: clamp(3rem, 7vw, 6rem);
+}
+
+.issue-page__content .wrap {
+  width: min(100% - clamp(2rem, 7vw, 6.5rem), 74rem);
+}
+
+.issue-page__content .section {
+  border-bottom: 1px solid var(--rule-1);
+}
+
+.issue-turn {
+  position: relative;
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: clamp(2rem, 6vw, 5rem) clamp(1rem, 4vw, 3.25rem) 0;
+  padding: clamp(1.5rem, 4vw, 3rem) 0 clamp(3.5rem, 7vw, 5.5rem);
+  border-top: 2px solid var(--text-1);
+}
+
+.issue-turn__link {
+  display: grid;
+  gap: .35rem;
+  min-height: 6rem;
+  align-content: center;
+  color: var(--text-1);
+  text-decoration: none;
+}
+
+.issue-turn__link--next { text-align: right; justify-items: end; }
+.issue-turn__link span {
+  color: var(--pink-deep);
+  font-size: .72rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.issue-turn__link b {
+  font-size: clamp(1.6rem, 4vw, 3.4rem);
+  transition: color var(--dur-1) var(--ease-paper);
+}
+.issue-turn__link--prev b::before { content: "← "; }
+.issue-turn__link--next b::after { content: " →"; }
+.issue-turn__link:hover b,
+.issue-turn__link:focus-visible b { color: var(--pink-deep); }
+
+.issue-page__folio {
+  position: absolute;
+  z-index: 3;
+  right: clamp(1rem, 4vw, 3.25rem);
+  bottom: 1rem;
+  color: var(--text-3);
+  font-size: .78rem;
+  letter-spacing: .14em;
+}
+
+.issue-footer {
+  width: min(calc(100% - 2rem), 86rem);
+  margin: 2rem auto 7rem;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: var(--paper-100);
+  border: 2px solid var(--text-1);
+  box-shadow: 6px 6px 0 var(--pink);
+}
+
+.issue-footer .wrap {
+  width: 100%;
+}
+
+@media (max-width: 46rem) {
+  .issue-reader { width: calc(100% - 1rem); padding-left: 0; margin-top: 1rem; }
+  .issue-spine { display: none; }
+  .issue-page {
+    box-shadow: 2px 2px 0 var(--paper-300), 4px 4px 0 rgba(173, 44, 109, .18);
+  }
+  .issue-page::after { width: .7rem; opacity: .65; }
+  .issue-page__head {
+    grid-template-columns: auto 1fr;
+    margin-inline: 1rem;
+  }
+  .issue-page__meta { display: none; }
+  .issue-page__section { font-size: .62rem; }
+  .issue-page__content .wrap { width: min(100% - 2rem, 74rem); }
+  .issue-turn { grid-template-columns: 1fr; margin-inline: 1rem; }
+  .issue-turn > span:empty { display: none; }
+  .issue-turn__link--next { text-align: left; justify-items: start; }
+  .issue-footer { width: calc(100% - 1rem); margin-bottom: 4rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .issue-turn__link b { transition: none; }
+}

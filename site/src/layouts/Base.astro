@@ -1,9 +1,9 @@
 ---
 import { u } from "../lib/url";import "../styles/global.css";
+import "../styles/issue.css";
 import Nav from "../components/Nav.astro";
-import SoundField from "../components/SoundField.astro";
 import SiteAudio from "../components/SiteAudio.astro";
-import { site, isPlaceholder, channelHref, contactChannels } from "../data/site";
+import { site, nav, isPlaceholder, channelHref, contactChannels } from "../data/site";
 import { ClientRouter } from "astro:transitions";
 
 interface Props {
@@ -20,6 +20,20 @@ const {
 } = Astro.props;
 const fullTitle = title ? `${title} — ${site.name}` : site.seo.title;
 const canonical = new URL(Astro.url.pathname, Astro.site).href;
+
+/* Every non-cover route is a feature in Issue 01. The numbers match the
+   printed contents page. Archive category routes inherit the My Work folio
+   so a project never falls out of the issue when it is opened. */
+const issueRoutes = nav.filter((item) => item.href !== "/");
+const path = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const routeIndex = issueRoutes.findIndex((item) => {
+  const href = u(item.href).replace(/\/+$/, "") || "/";
+  return path === href || (item.href === "/archive" && path.startsWith(`${href}/`));
+});
+const issueNumber = routeIndex >= 0 ? String(routeIndex + 3).padStart(2, "0") : "—";
+const issueTitle = routeIndex >= 0 ? issueRoutes[routeIndex].label : (title ?? "Feature");
+const previous = routeIndex > 0 ? issueRoutes[routeIndex - 1] : null;
+const next = routeIndex >= 0 && routeIndex < issueRoutes.length - 1 ? issueRoutes[routeIndex + 1] : null;
 
 /* Footer contact. Placeholders are skipped rather than rendered as gaps —
    an unfilled [ADD LINKEDIN] on all 16 pages is noise, and the Contact page
@@ -68,19 +82,51 @@ const grain =
     alumniOf: { "@type": "EducationalOrganization", name: "MediaTech Institute" },
   })} />
 </head>
-<body style={`--grain-url: ${grain};`}>
-  {/* The animated background. Fixed to the viewport and sitting at
-      z-index -1, so it is behind every page without any page having to
-      know about it. See components/SoundField.astro. */}
-  {!bare && <SoundField />}
+<body class:list={{ "issue-body": !bare }} style={`--grain-url: ${grain};`}>
   {/* Her track, offered in the bottom-left corner of every page. Never
       autoplays; on play it feeds the SoundField analyser so the background
       reacts to the real signal. See components/SiteAudio.astro. */}
   {!bare && <SiteAudio />}
   <a class="skip-link" href="#main">Skip to content</a>
-  {!bare && <Nav />}
-  <main id="main"><slot /></main>
-  {!bare && <footer class="foot">
+  {!bare && <Nav pageNumber={issueNumber} pageTitle={issueTitle} />}
+  {bare ? (
+    <main id="main"><slot /></main>
+  ) : (
+    <div class="issue-reader">
+      <div class="issue-spine" aria-hidden="true">
+        <span><b>LOYA</b> ISSUE 01 <i>●</i> AUDIO ENGINEER · DJ · CREATIVE · ARTIST</span>
+      </div>
+      <main id="main" class="issue-page">
+        <header class="issue-page__head">
+          <a class="issue-page__mark display" href={u("/")}>LOYA</a>
+          <p class="issue-page__meta typewriter">Issue 01 · Fall 2026 · {site.location.replace(", Texas", ", TX")}</p>
+          <p class="issue-page__section typewriter">p. {issueNumber} <b>{issueTitle}</b></p>
+        </header>
+        <div class="issue-page__content"><slot /></div>
+        <nav class="issue-turn" aria-label="Continue through Issue 01">
+          {previous ? (
+            <a class="issue-turn__link issue-turn__link--prev" href={u(previous.href)}>
+              <span class="typewriter">Previous page</span>
+              <b class="display">{previous.label}</b>
+            </a>
+          ) : <span></span>}
+          {next ? (
+            <a class="issue-turn__link issue-turn__link--next" href={u(next.href)}>
+              <span class="typewriter">Next page</span>
+              <b class="display">{next.label}</b>
+            </a>
+          ) : (
+            <a class="issue-turn__link issue-turn__link--next" href={u("/")}>
+              <span class="typewriter">Close the issue</span>
+              <b class="display">Back to cover</b>
+            </a>
+          )}
+        </nav>
+        <span class="issue-page__folio typewriter" aria-hidden="true">{issueNumber}</span>
+      </main>
+    </div>
+  )}
+  {!bare && <footer class="foot issue-footer">
     <div class="wrap">
       <p class="display name">{site.name}</p>
       <p class="typewriter roles">{site.rolesLine}</p>
