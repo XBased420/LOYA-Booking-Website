@@ -450,6 +450,12 @@ export function mount(root) {
   let rt; on(window, 'resize', () => { clearTimeout(rt); rt = setTimeout(() => alive && build(), 120); });
   build();
 
+  /* Links from the long-form issue pages can open a specific printed page
+     (for example /#p1 opens Contents). Wait until build has measured the
+     book, then place that page in view. Plain / still opens on the cover. */
+  const deepLink = location.hash.match(/^#p(\d+)$/);
+  if (deepLink) setTimeout(() => alive && goPage(Number(deepLink[1])), 0);
+
   return function teardown() {
     alive = false;
     offs.forEach(off => off());

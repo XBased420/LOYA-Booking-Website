@@ -1,251 +1,239 @@
 ---
-import { u } from "../lib/url";import { nav, site } from "../data/site";
-const path = Astro.url.pathname.replace(/\/$/, "") || "/";
-/* Compare against the BASED href. Astro.url.pathname carries the base at
-   runtime, so a bare "/music" would never match and no link would ever show
-   as current once the site is served from a subpath. */
-const at = (href: string) => path === (u(href).replace(/\/+$/, "") || "/");
+import { u } from "../lib/url";
+import { nav, site } from "../data/site";
+
+interface Props {
+  pageNumber?: string;
+  pageTitle?: string;
+}
+
+const { pageNumber = "—", pageTitle = "Feature" } = Astro.props;
+const path = Astro.url.pathname.replace(/\/+$/, "") || "/";
+const at = (href: string) => {
+  const based = u(href).replace(/\/+$/, "") || "/";
+  return path === based || (href === "/archive" && path.startsWith(`${based}/`));
+};
+
+const contents = [
+  { href: "/", label: "Cover", num: "—" },
+  { href: "/#p1", label: "Contents", num: "02" },
+  ...nav.filter((item) => item.href !== "/").map((item, index) => ({
+    ...item,
+    num: String(index + 3).padStart(2, "0"),
+  })),
+];
 ---
-<header class="bar">
-  <a class="mark display" href={u("/")}>{site.name}</a>
 
-  <nav class="quick" aria-label="Primary">
-    {nav.filter((n) => ["/archive", "/audio-engineering", "/music"].includes(n.href))
-      .map((n) => (
-        <a href={u(n.href)} aria-current={at(n.href) ? "page" : undefined}>{n.label}</a>
-      ))}
-  </nav>
+<header class="issue-bar" data-issue-bar>
+  <a class="issue-logo display" href={u("/")}>{site.name}</a>
+  <span class="issue-where typewriter">Issue 01 · p. {pageNumber} <b>{pageTitle}</b></span>
 
-  <div class="right">
-    <a class="btn btn--primary book" href={u("/book")}>Book a Session</a>
+  <button class="issue-pill issue-sound typewriter" type="button" aria-pressed="false" aria-label="Play LOYA's music">
+    <span aria-hidden="true">♪</span> Sound
+  </button>
 
-    <details class="menu">
-      <summary aria-label="All pages">
-        <span class="typewriter">Menu</span>
-        <span class="bars" aria-hidden="true"><i></i><i></i><i></i></span>
-      </summary>
-      <div class="sheet">
-        <ul>
-          {nav.map((n, i) => (
-            <li style={`--i:${i};`}>
-              <a href={u(n.href)} aria-current={at(n.href) ? "page" : undefined}>
-                <span class="num typewriter">{String(i + 1).padStart(2, "0")}</span>
-                <span class="lbl display">{n.label}</span>
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </details>
-  </div>
+  <details class="issue-menu">
+    <summary class="issue-pill typewriter">Contents <span aria-hidden="true">▾</span></summary>
+    <div class="issue-menu__sheet">
+      <ol>
+        {contents.map((item, index) => (
+          <li style={`--i:${index};`}>
+            <a href={u(item.href)} aria-current={at(item.href) ? "page" : undefined}>
+              <b class="display">{item.num}</b>
+              <span>{item.label}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </details>
+
+  <a class="issue-pill issue-book typewriter" href={u("/book")}>Book</a>
 </header>
 
 <script>
-  /* <details> gives open/close and keyboard focus for free. Everything a
-     menu additionally needs is here: an open AND close animation, Escape,
-     and outside-click.
+  let releaseIssueNav = () => {};
 
-     Both animations are script-driven. `data-open` is added one frame after
-     the panel renders so the browser has a base state to transition from;
-     removing it plays the exit, and only then does `open` drop — otherwise
-     <details> tears the panel out instantly and there is nothing to animate. */
-  function bindMenu() {
-    const menu = document.querySelector<HTMLDetailsElement>("header .menu");
-    if (!menu || menu.dataset.bound) return;
-    menu.dataset.bound = "1";
+  function bindIssueNav() {
+    releaseIssueNav();
+    const bar = document.querySelector<HTMLElement>("[data-issue-bar]");
+    if (!bar) return;
 
-    const summary = menu.querySelector("summary");
-    const sheet = menu.querySelector<HTMLElement>(".sheet");
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)");
-    let closing = false;
+    const control = new AbortController();
+    const { signal } = control;
+    const menu = bar.querySelector<HTMLDetailsElement>(".issue-menu");
+    const sound = bar.querySelector<HTMLButtonElement>(".issue-sound");
+    const audio = document.getElementById("site-audio") as HTMLAudioElement | null;
 
-    /* Fires whenever `open` flips, from a click, the keyboard, or find-in-page. */
-    menu.addEventListener("toggle", () => {
-      if (!menu.open || !sheet || closing) return;
-      if (reduce.matches) { sheet.dataset.open = ""; return; }
-      /* Two frames: one for the panel to render at its base state, one for
-         the change to register as a transition rather than an initial value. */
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => { if (menu.open) sheet.dataset.open = ""; })
-      );
+    const syncSound = () => {
+      const on = audio?.paused === false;
+      sound?.setAttribute("aria-pressed", String(on));
+      sound?.setAttribute("aria-label", `${on ? "Pause" : "Play"} LOYA's music`);
+    };
+
+    sound?.addEventListener("click", () => {
+      const dockButton = document.getElementById("site-audio-btn") as HTMLButtonElement | null;
+      dockButton?.click();
+      requestAnimationFrame(syncSound);
+    }, { signal });
+    audio?.addEventListener("play", syncSound, { signal });
+    audio?.addEventListener("pause", syncSound, { signal });
+    syncSound();
+
+    bar.querySelectorAll(".issue-menu a").forEach((link) => {
+      link.addEventListener("click", () => { if (menu) menu.open = false; }, { signal });
     });
-
-    function close(refocus = false) {
-      if (!menu.open || closing) return;
-      const finishNow = () => {
-        closing = false;
-        sheet && delete sheet.dataset.open;
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && menu?.open) {
         menu.open = false;
-        if (refocus) summary?.focus();
-      };
-      if (!sheet || reduce.matches) return finishNow();
+        menu.querySelector("summary")?.focus();
+      }
+    }, { signal });
+    document.addEventListener("pointerdown", (event) => {
+      if (menu?.open && !menu.contains(event.target as Node)) menu.open = false;
+    }, { signal });
 
-      closing = true;
-      delete sheet.dataset.open;           // plays the exit transition
-      let done = false;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        finishNow();
-      };
-      sheet.addEventListener("transitionend", finish, { once: true });
-      /* transitionend never arrives if the panel is hidden mid-flight —
-         a background tab, or a second close racing this one. */
-      setTimeout(finish, 400);
-    }
-
-    /* The summary's own click would flip `open` off immediately and skip the
-       exit animation, so take it over while the menu is open. */
-    summary?.addEventListener("click", (e) => {
-      if (menu.open) { e.preventDefault(); close(true); }
-    });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") close(true);
-    });
-    document.addEventListener("pointerdown", (e) => {
-      if (menu.open && !menu.contains(e.target as Node)) close();
-    });
-    /* Client-side navigation swaps the page under an open menu — drop it
-       outright, there is no panel left to animate. */
-    document.addEventListener("astro:before-swap", () => {
-      closing = false;
-      if (sheet) delete sheet.dataset.open;
-      menu.open = false;
-    });
+    releaseIssueNav = () => control.abort();
   }
-  document.addEventListener("astro:page-load", bindMenu);
+
+  document.addEventListener("astro:page-load", bindIssueNav);
+  document.addEventListener("astro:before-swap", () => releaseIssueNav());
+  bindIssueNav();
 </script>
 
 <style>
-  .bar {
-    position: sticky; top: 0; z-index: 40;
-    display: flex; align-items: center; gap: var(--s-5);
-    padding: var(--s-3) clamp(1rem, 4vw, 3rem);
-    background: color-mix(in srgb, var(--ground-0) 88%, transparent);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--rule-1);
+  .issue-bar {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    min-height: 4.25rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: calc(.65rem + env(safe-area-inset-top, 0px)) clamp(1rem, 3vw, 2.5rem) .65rem;
+    background: color-mix(in srgb, var(--ground-2) 88%, transparent);
+    border-bottom: 1px solid rgba(31, 23, 32, .14);
+    backdrop-filter: blur(14px);
   }
-  .mark { font-size: var(--t-md); letter-spacing: .04em; text-decoration: none; }
-  .quick { display: none; gap: var(--s-5); margin-inline-start: auto; }
-  .quick a {
-    font-size: var(--t-sm); text-decoration: none; color: var(--text-2);
-    padding-block: var(--s-2); border-bottom: 2px solid transparent;
-  }
-  .quick a:hover, .quick a[aria-current="page"] {
-    color: var(--text-1); border-bottom-color: var(--violet-deep);
-  }
-  .right { display: flex; align-items: center; gap: var(--s-3); margin-inline-start: auto; }
-  @media (min-width: 62rem) {
-    .quick { display: flex; }
-    .right { margin-inline-start: var(--s-6); }
-  }
-  .book { font-size: var(--t-xs); padding: var(--s-3) var(--s-4); }
-  @media (max-width: 34rem) { .book { display: none; } }
 
-  /* details/summary disclosure — no JS, keyboard accessible by default */
-  .menu { position: relative; }
-  .menu summary {
-    display: flex; align-items: center; gap: var(--s-2);
-    min-height: 44px; padding: 0 var(--s-3); cursor: pointer;
-    list-style: none; color: var(--text-1); font-size: var(--t-xs);
-    letter-spacing: .2em; text-transform: uppercase;
-    border: 1px solid var(--rule-3);
+  .issue-logo {
+    color: var(--text-1);
+    font-size: 1.75rem;
+    letter-spacing: .01em;
+    text-decoration: none;
   }
-  .menu summary::-webkit-details-marker { display: none; }
-  .bars { display: grid; gap: 3px; }
-  .bars i { display: block; width: 17px; height: 2px; background: currentColor; }
-  .menu[open] summary { background: var(--paper-100); color: var(--paper-ink); }
 
-  /* THE MENU PANEL — a dropdown anchored under its button, on the right.
+  .issue-where {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: var(--text-2);
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .issue-where b { color: var(--pink-deep); }
 
-     It was a full-bleed `position: fixed` sheet, which never worked: .bar
-     sets `backdrop-filter`, and a backdrop-filter (like transform) makes an
-     element the CONTAINING BLOCK for fixed-position descendants. So the
-     sheet resolved `inset: 3.6rem 0 0` against the ~60px header instead of
-     the viewport and rendered as a broken strip with the page showing
-     through it. Anchoring to .menu (position: relative) sidesteps that
-     entirely — and a dropdown is the right shape for nine links anyway. */
-  .sheet {
+  .issue-pill {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    padding: .7rem 1rem;
+    color: var(--text-1);
+    background: var(--paper-100);
+    border: 2px solid var(--text-1);
+    border-radius: 99px;
+    font-size: .72rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-decoration: none;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .issue-pill:hover,
+  .issue-pill:focus-visible { background: var(--paper-300); }
+  .issue-sound[aria-pressed="true"] { color: var(--paper-100); background: var(--text-1); }
+
+  .issue-book {
+    color: #fff;
+    background: var(--pink);
+    border-color: var(--pink);
+    box-shadow: 0 3px 0 var(--pink-deep);
+  }
+  .issue-book:hover,
+  .issue-book:focus-visible { color: #fff; background: var(--pink-deep); }
+
+  .issue-menu { position: relative; }
+  .issue-menu summary { list-style: none; }
+  .issue-menu summary::-webkit-details-marker { display: none; }
+  .issue-menu[open] summary { color: var(--paper-100); background: var(--text-1); }
+
+  .issue-menu__sheet {
     position: absolute;
-    top: calc(100% + 0.5rem);
+    top: calc(100% + .55rem);
     right: 0;
-    z-index: 10;
     width: max-content;
-    min-width: 14rem;
-    /* never wider than the viewport minus the bar's own gutter */
+    min-width: 17rem;
     max-width: calc(100vw - 2rem);
     max-height: calc(100vh - 6rem);
     overflow-y: auto;
-    overscroll-behavior: contain;
+    padding: .55rem;
     background: var(--paper-100);
-    border: 1px solid var(--rule-2);
-    box-shadow: var(--lift-3);
-    padding: var(--s-2);
+    border: 2px solid var(--text-1);
+    box-shadow: 6px 6px 0 var(--pink);
+    transform-origin: 100% 0;
+    animation: issue-menu-in .22s var(--ease-out);
+  }
 
-    /* Grows out of the button it hangs from. */
-    transform-origin: top right;
-    opacity: 0;
-    transform: translateY(-6px) scale(.97);
-    transition: opacity var(--dur-2) var(--ease-out),
-                transform var(--dur-2) var(--ease-paper);
+  @keyframes issue-menu-in {
+    from { opacity: 0; transform: translateY(-6px) scale(.97); }
   }
-  /* <details> has no open/close animation of its own, and @starting-style
-     does NOT rescue it: a closed <details> hides its content with
-     content-visibility rather than display:none, so the panel never enters
-     the rendering tree from a hidden state and there is nothing to animate
-     from — it just pops in at its final value.
 
-     So the open state is an attribute the script sets one frame after the
-     panel has rendered at the base state above. That one frame is what
-     makes it a genuine transition. Closing removes the attribute and waits
-     for the transition before dropping `open`. */
-  .sheet[data-open] { opacity: 1; transform: none; }
-  .sheet ul {
-    list-style: none; margin: 0; padding: 0;
-    display: grid; gap: 1px;
+  .issue-menu ol { list-style: none; margin: 0; padding: 0; }
+  .issue-menu li {
+    animation: issue-item-in .3s var(--ease-out) backwards;
+    animation-delay: calc(var(--i) * 22ms);
   }
-  /* Items arrive just behind the panel, in order. Short steps — nine links
-     at 18ms is a ~160ms tail, enough to read as a cascade without making
-     the last item feel late. */
-  .sheet[data-open] li {
-    opacity: 0;
-    animation: menu-item var(--dur-2) var(--ease-out) forwards;
-    animation-delay: calc(var(--i, 0) * 18ms);
+  @keyframes issue-item-in {
+    from { opacity: 0; transform: translateX(.5rem); }
   }
-  @keyframes menu-item {
-    from { opacity: 0; transform: translateY(-5px); }
-    to   { opacity: 1; transform: none; }
-  }
-  .sheet a {
+
+  .issue-menu a {
     display: grid;
-    grid-template-columns: 1.9rem 1fr;
+    grid-template-columns: 2.7rem 1fr;
     align-items: baseline;
-    gap: var(--s-2);
-    padding: var(--s-3) var(--s-3);
+    gap: .35rem;
+    padding: .65rem .75rem;
+    color: var(--text-1);
+    font-size: .9rem;
+    font-weight: 700;
     text-decoration: none;
-    color: var(--paper-ink);
-    white-space: nowrap;
   }
-  .sheet a:hover { background: var(--paper-300); }
-  .sheet a[aria-current="page"] {
-    background: var(--paper-200);
-    box-shadow: inset 3px 0 0 var(--pink-deep);
+  .issue-menu a:hover,
+  .issue-menu a:focus-visible,
+  .issue-menu a[aria-current="page"] { background: var(--ground-2); }
+  .issue-menu a b { color: var(--pink-deep); font-size: 1.2rem; }
+
+  @media (max-width: 47rem) {
+    .issue-bar { gap: .45rem; padding-inline: .7rem; }
+    .issue-where { display: none; }
+    .issue-logo { margin-right: auto; }
+    .issue-pill { min-height: 2.55rem; padding: .58rem .72rem; font-size: .65rem; }
   }
-  .sheet a[aria-current="page"] .lbl { color: var(--pink-deep); }
-  .num { color: var(--paper-ink-soft); font-size: var(--t-xs); }
-  .lbl { font-size: var(--t-sm); letter-spacing: .04em; }
+
+  @media (max-width: 28rem) {
+    .issue-sound { width: 2.7rem; padding-inline: 0; font-size: 0; }
+    .issue-sound span { font-size: .9rem; }
+    .issue-book { display: none; }
+    .issue-menu__sheet { position: fixed; top: 4.4rem; right: .65rem; left: .65rem; width: auto; }
+  }
 
   @media (prefers-reduced-motion: reduce) {
-    .sheet, .sheet[data-open] { opacity: 1; transform: none; transition: none; }
-    .sheet[data-open] li { opacity: 1; animation: none; }
+    .issue-menu__sheet,
+    .issue-menu li { animation: none; }
   }
-
-  /* On a phone the Book button is hidden, so the panel can afford to span
-     more of the width and sit as a proper sheet under the bar. */
-  @media (max-width: 34rem) {
-    .sheet { width: calc(100vw - 2rem); }
-    .sheet a { grid-template-columns: 2.2rem 1fr; padding: var(--s-3) var(--s-4); }
-    .lbl { font-size: var(--t-base); }
-  }
-
 </style>

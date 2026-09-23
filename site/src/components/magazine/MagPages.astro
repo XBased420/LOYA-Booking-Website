@@ -17,10 +17,12 @@ import { site, experience, contactChannels, channelHref, isPlaceholder } from ".
 import { rateLines, bookableServices, deposit, paymentMethods } from "../../data/booking";
 import { backgroundTrack as track } from "../../data/work";
 
-/** Responsive photo sources: every image in public/media/img has 800/1200 widths. */
+/** Responsive photo sources: every image used by the issue has 400/800 widths.
+ *  Some portraits stop at 800, so advertising a 1200 source made browsers
+ *  choose a file that does not exist on the Contents spread. */
 const img = (name: string) => ({
   src: u(`/media/img/${name}-800.webp`),
-  srcset: `${u(`/media/img/${name}-800.webp`)} 800w, ${u(`/media/img/${name}-1200.webp`)} 1200w`,
+  srcset: `${u(`/media/img/${name}-400.webp`)} 400w, ${u(`/media/img/${name}-800.webp`)} 800w`,
   sizes: "(min-width: 760px) 34vw, 92vw",
 });
 
