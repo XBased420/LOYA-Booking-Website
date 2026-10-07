@@ -216,6 +216,7 @@ export function mount(root) {
 
   function layout() {
     const off = mode === 'spread' ? pw : 0;
+    root.style.setProperty('--pw', pw + 'px');   // page width, for the pages' own padding (see magazine.css)
     leaves.forEach(l => { l.style.width = pw + 'px'; l.style.height = ph + 'px'; l.style.left = off + 'px'; });
     faces.forEach(f => f._videos.forEach(v => { v._geo = null; }));
     dropCurls(); trackTop = track.offsetTop; shown = progress(); leaves.forEach(l => l._t = undefined); lastS = lastTurned = lastHint = -1;
