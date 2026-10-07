@@ -31,7 +31,9 @@ export function mount(root) {
   const offs = [];
   const on = (target, type, fn, opts) => { target.addEventListener(type, fn, opts); offs.push(() => target.removeEventListener(type, fn, opts)); };
   const html = document.documentElement, prevSnap = html.style.scrollSnapType;
-  html.style.scrollSnapType = 'y proximity';
+  // No CSS scroll-snap: browsers disagree on what a wheel notch or a trackpad flick should do with it
+  // (spring back, or fly through two pages). The magazine handles input itself — see "input" below.
+  html.style.scrollSnapType = 'none';
   root.classList.add('is-live');
 
   // the ten printed pages, rendered by MagPages.astro; lifted out of the document and used as the originals to clone
@@ -60,14 +62,23 @@ export function mount(root) {
     list.appendChild(li);
   });
 
+  // A phone's address bar slides in and out while you scroll, which changes innerHeight but
+  // not the small-viewport unit (svh). Everything — page size, scroll distance per turn and the
+  // snap points — is measured in that one stable unit, so the book never rests half-turned and
+  // never rebuilds mid-scroll just because the bar moved.
+  const probe = el('div'); probe.setAttribute('aria-hidden', 'true');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:100vh;height:100svh;visibility:hidden;pointer-events:none';
+  root.appendChild(probe);
+  let unit = innerHeight, builtW = 0, builtU = 0;
   function build() {
     const m = innerWidth > 760 ? 'spread' : 'single';
-    const vh = innerHeight;
+    unit = probe.offsetHeight || innerHeight; builtW = innerWidth; builtU = unit;
+    const vh = unit;
     if (m === 'spread') { ph = Math.min(vh * 0.8, (innerWidth - 140) / 2 * 1.3); pw = ph / 1.3; }
     else { pw = Math.min(innerWidth - 32, (vh - 170) / 1.3); ph = pw * 1.3; }
     book.style.width = (m === 'spread' ? pw * 2 : pw) + 'px';
     book.style.height = ph + 'px';
-    if (m === mode) { layout(); return; }
+    if (m === mode) { track.style.height = (turns + 1) * unit + 'px'; track.querySelectorAll('.snappt').forEach((n, s) => n.style.top = s * unit + 'px'); layout(); return; }
     mode = m; book.innerHTML = ''; leaves = []; faces = []; moving = false;
     const clone = i => pages[i] ? prep(pages[i].cloneNode(true)) : null;
     pairs = []; dropCurls();
@@ -96,9 +107,9 @@ export function mount(root) {
 
     turns = m === 'spread' ? leaves.length : leaves.length - 1;
     { const p0 = progress(); leaves.forEach((l, i) => l._side = p0 - i >= .5 ? 1 : 0); }
-    track.style.height = `calc(${turns + 1} * 100vh)`;
+    track.style.height = (turns + 1) * unit + 'px';
     track.querySelectorAll('.snappt').forEach(n => n.remove());
-    for (let s = 0; s <= turns; s++) { const n = el('i', 'snappt'); n.style.top = s * 100 + 'vh'; track.appendChild(n); }
+    for (let s = 0; s <= turns; s++) { const n = el('i', 'snappt'); n.style.top = s * unit + 'px'; track.appendChild(n); }
     dots.innerHTML = '';
     for (let s = 0; s <= turns; s++) { const d = el('button'); d.setAttribute('aria-label', 'Go to ' + label(s).replace(/<[^>]+>/g, '')); d.onclick = () => goSpread(s); dots.appendChild(d); }
     faces.forEach(f => f._videos.forEach(v => { v.muted = true; }));
@@ -112,11 +123,26 @@ export function mount(root) {
 
   /* ── curl: a turning leaf is re-drawn as N hinged strips so the paper bends ── */
   const CURL = !reduce;
+  /* Where idle bending copies (and a flat leaf that's mid-turn) wait: far off-screen. Moving them is
+     a transform, which nothing inherits, so switching a copy in or out costs nothing. Hiding them with
+     visibility did the same job but made the browser restyle every element of every page clone in the
+     copy — the stall at the start of each turn. Off-screen they also can't bleed through the page. */
+  const PARK = 'translate3d(-12000px,0,0)';
+  // A parked copy is flattened to a single plain layer: strips unrotated, light layers merged. Only the
+  // copy that's actually bending gets its strips as 3D layers and its light on layers of its own (so the
+  // light can change every frame without repainting the photo and type under it).
+  // content-visibility: hidden makes the browser skip a parked copy entirely (no layers, no paint)
+  // while keeping its finished layout, so waking it is cheap. Browsers without it still get the
+  // off-screen park.
+  function park(c) { c.style.transform = PARK; c.style.contentVisibility = 'hidden'; c._s.forEach(o => { o.s.style.transform = ''; o.sh[0].style.willChange = o.sh[1].style.willChange = ''; o._fb = o._bb = null; }); }
+  function wake(c) { c.style.contentVisibility = 'visible'; c._s.forEach(o => { o.sh[0].style.willChange = o.sh[1].style.willChange = 'transform'; }); }
   let curls = {}, pairs = [];
   function stillClone(idx) {
     // a frozen copy of a page for the bending strips: videos become their poster stills
     const c = pages[idx].cloneNode(true);
-    c.querySelectorAll('video').forEach((v, k) => { const im = document.createElement('img'); im.src = v.getAttribute('poster'); im.alt = ''; im.className = 'vpost'; im.dataset.v = k; v.replaceWith(im); });
+    c.querySelectorAll('video').forEach((v, k) => { const cv = document.createElement('canvas'); cv.className = 'vpost'; cv.dataset.v = k; cv.dataset.poster = v.getAttribute('poster') || ''; v.replaceWith(cv); });
+    // the bending copies are decoration: keep the page's one real <h1> (the cover masthead) out of them
+    c.querySelectorAll('h1').forEach(h => { const d = document.createElement('div'); d.className = h.className; d.innerHTML = h.innerHTML; h.replaceWith(d); });
     c.querySelectorAll('.mast').forEach(m => { m.innerHTML = [...m.textContent].map(ch => `<span class="ml">${ch}</span>`).join(''); });
     if (c.classList.contains('pg--music') && musicOn) c.classList.add('playing');
     c.style.width = pw + 'px'; c.style.height = ph + 'px';
@@ -139,9 +165,28 @@ export function mount(root) {
     }
     // built ahead of time but switched fully off until its leaf starts to turn. (Parking it a pixel behind
     // the flat page looked fine in software, but on a real GPU its strip edges bled through as lines.)
-    root._N = N; root._on = false; root.style.visibility = 'hidden'; { const n = leaves.length, e0 = clamp(shown - i, 0, 1) >= .5 ? 1 : 0, zp = ((n - i) + ((i + 1) - (n - i)) * e0) * dz; root.style.transform = `translateZ(${(zp - 1).toFixed(2)}px)`; }
-    bend(root, clamp(shown - i, 0, 1) >= .5 ? 1 : 0); book.appendChild(root); return root;
+    root._N = N; root._on = false; root.style.transform = PARK;
+    // a hidden copy for decoration only: keep it out of the accessibility tree and the tab order
+    root.setAttribute('aria-hidden', 'true'); root.inert = true;
+    book.appendChild(root);
+    // size its video canvases once (every strip's copy is the same size) and start them on the poster still
+    const vps = [...root.querySelectorAll('canvas.vpost')];
+    if (vps.length) {
+      const bySrc = {};
+      vps.forEach(cv => (bySrc[cv.dataset.v + '|' + cv.closest('.sl').className.includes('sl--b')] ||= []).push(cv));
+      Object.values(bySrc).forEach(group => {
+        const w = group[0].offsetWidth, h = group[0].offsetHeight;
+        group.forEach(cv => { cv.width = Math.max(1, Math.round(w * FREEZE_DPR)); cv.height = Math.max(1, Math.round(h * FREEZE_DPR)); });
+        const poster = group[0].dataset.poster;
+        if (poster) { const im = posterImg(poster); const paint = () => group.forEach(cv => drawCover(cv, im, im.naturalWidth, im.naturalHeight)); im.complete ? paint() : im.addEventListener('load', paint, { once: true }); }
+      });
+    }
+    // laid out once (above), now skipped until its leaf turns
+    root.style.contentVisibility = 'hidden';
+    return root;
   }
+  const posters = {};
+  function posterImg(src) { if (!posters[src]) { const im = new Image(); im.decoding = 'async'; im.src = src; posters[src] = im; } return posters[src]; }
   function dropCurls() { Object.values(curls).forEach(c => c.remove()); curls = {}; }
   function bend(c, e) {
     // cumulative angle per strip: the free edge leads, the spine lags, and it all flattens out at either end
@@ -172,6 +217,7 @@ export function mount(root) {
   function layout() {
     const off = mode === 'spread' ? pw : 0;
     leaves.forEach(l => { l.style.width = pw + 'px'; l.style.height = ph + 'px'; l.style.left = off + 'px'; });
+    faces.forEach(f => f._videos.forEach(v => { v._geo = null; }));
     dropCurls(); trackTop = track.offsetTop; shown = progress(); leaves.forEach(l => l._t = undefined); lastS = lastTurned = lastHint = -1;
     // thickness: about 5% of the page width, shared between the leaves
     TH = Math.max(14, Math.round(pw * .065)); dz = TH / leaves.length;
@@ -188,45 +234,57 @@ export function mount(root) {
   const ease = t => (1 - Math.cos(Math.PI * t)) / 2;
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   let trackTop = 0;
-  const progress = () => clamp((scrollY - trackTop) / innerHeight, 0, turns);
+  const progress = () => clamp((scrollY - trackTop) / unit, 0, turns);
   const cur = () => Math.round(progress());
 
-  /* ── video freeze: swap each video for a still of its current frame while pages move ── */
+  /* ── video freeze: swap each video for a still of its current frame while pages move ──
+     Playing video is a GPU overlay that ignores 3D stacking, so during a turn every video is hidden
+     and the ones on screen are replaced by a canvas holding their current frame. This runs on the
+     first frame of every turn, so it has to be cheap: geometry is measured once per layout, canvases
+     are drawn at ≤1.25× (it's moving), nothing is encoded, and off-screen videos are just hidden. */
   let moving = false;
+  const FREEZE_DPR = Math.min(devicePixelRatio || 1, 1.25);
+  // draw a video (or image) into a canvas the way object-fit: cover would
+  function drawCover(cv, src, sw, sh) {
+    if (!sw || !sh) return false;
+    const g = cv.getContext('2d'); const s = Math.max(cv.width / sw, cv.height / sh), dw = sw * s, dh = sh * s;
+    try { g.drawImage(src, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh); return true; } catch (e) { return false; }
+  }
   function freeze() {
     faces.forEach(f => f._videos.forEach(v => {
+      v.pause(); v.style.visibility = 'hidden';
+      if (!f._shown || !(v.readyState >= 2 && v.videoWidth)) return;
       let cv = v._cv;
       if (!cv) { cv = v._cv = document.createElement('canvas'); cv.className = 'vfreeze'; v.after(cv); }
-      const w = v.offsetWidth, h = v.offsetHeight, cs = getComputedStyle(v);
-      cv.style.left = v.offsetLeft + 'px'; cv.style.top = v.offsetTop + 'px'; cv.style.width = w + 'px'; cv.style.height = h + 'px';
-      cv.style.transform = cs.transform === 'none' ? '' : cs.transform; cv.style.transformOrigin = cs.transformOrigin;
-      const dpr = Math.min(devicePixelRatio || 1, 2); cv.width = Math.max(1, Math.round(w * dpr)); cv.height = Math.max(1, Math.round(h * dpr));
-      const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height);
-      if (v.readyState >= 2 && v.videoWidth) {
-        // object-fit: cover, by hand
-        const s = Math.max(cv.width / v.videoWidth, cv.height / v.videoHeight), dw = v.videoWidth * s, dh = v.videoHeight * s;
-        try { g.drawImage(v, (cv.width - dw) / 2, (cv.height - dh) / 2, dw, dh); } catch (e) {}
+      if (!v._geo) {
+        const cs = getComputedStyle(v);
+        v._geo = { l: v.offsetLeft, t: v.offsetTop, w: v.offsetWidth, h: v.offsetHeight, tf: cs.transform === 'none' ? '' : cs.transform, to: cs.transformOrigin };
+        Object.assign(cv.style, { left: v._geo.l + 'px', top: v._geo.t + 'px', width: v._geo.w + 'px', height: v._geo.h + 'px', transform: v._geo.tf, transformOrigin: v._geo.to });
+        cv.width = Math.max(1, Math.round(v._geo.w * FREEZE_DPR)); cv.height = Math.max(1, Math.round(v._geo.h * FREEZE_DPR));
       }
-      v.pause();
-    }));
-    book.classList.add('moving');
-    // hand the same frame to the bending copy of the leaf, so grabbing a video page doesn't jump to its poster
-    faces.forEach(f => f._videos.forEach((v, k) => {
-      const c = curls[f._leaf]; if (!c || !v._cv || !(v.readyState >= 2)) return;
-      let url; try { url = v._cv.toDataURL('image/jpeg', .85); } catch (e) { return; }
-      c.querySelectorAll(`.sl--${f._sd} img.vpost[data-v="${k}"]`).forEach(im => { im.src = url; });
+      if (drawCover(cv, v, v.videoWidth, v.videoHeight)) cv.style.display = 'block';
     }));
   }
   function thaw() {
-    book.classList.remove('moving');
+    faces.forEach(f => f._videos.forEach(v => { v.style.visibility = ''; if (v._cv) v._cv.style.display = ''; }));
     faces.forEach(f => { if (f._shown) f._videos.forEach(v => v.play().catch(() => {})); });
+  }
+  // when a leaf starts bending, paint its videos' current frames onto the bending copy's canvases,
+  // so grabbing a video page doesn't jump to a different frame
+  function syncCurlVideos(c, i) {
+    const leaf = leaves[i]; if (!leaf) return;
+    [['f', leaf._f], ['b', leaf._b]].forEach(([sd, face]) => face._videos.forEach((v, k) => {
+      if (!(v.readyState >= 2 && v.videoWidth)) return;
+      c.querySelectorAll(`.sl--${sd} canvas.vpost[data-v="${k}"]`).forEach(cv => drawCover(cv, v, v.videoWidth, v.videoHeight));
+    }));
   }
 
   /* per-frame state, so each frame only touches what actually changed */
   let lastS = -1, lastTurned = -1, lastHint = -1, castOn = null;
   function render(p = shown) {
     const n = leaves.length;
-    const T = leaves.map((_, i) => { const v = clamp(p - i, 0, 1); return reduce ? Math.round(v) : v; }), E = T.map(ease);
+    // the last fraction of a percent at either end counts as flat, so a page can't sit a hair off the stack
+    const T = leaves.map((_, i) => { const v = clamp(p - i, 0, 1); return reduce ? Math.round(v) : v < .003 ? 0 : v > .997 ? 1 : v; }), E = T.map(ease);
     leaves.forEach((leaf, i) => {
       // front is visible once the leaf above it starts lifting, until this leaf passes the spine
       leaf._f._vis = E[i] < .5 && (i === 0 || T[i - 1] > 0);
@@ -244,12 +302,12 @@ export function mount(root) {
       // each leaf sits at its height in the stack: top of the right pile before, top of the left pile after
       const zR = (n - i) * dz, zL = (i + 1) * dz, z = zR + (zL - zR) * e + Math.sin(Math.PI * e) * dz * 1.5;
       leaf._z = z;
-      leaf.style.transform = `translateZ(${z.toFixed(2)}px) rotateY(${(-180 * e).toFixed(3)}deg)`;
-      leaf.style.zIndex = t < .5 ? 100 + (n - i) : i + 1;
-      // mid-turn, swap the stiff leaf for the bending strips
+      // mid-turn the bending copy takes the leaf's place, and the flat leaf is parked off-screen
       const turning = CURL && t > 0 && t < 1;
-      if (turning) { const c = curls[i] || (curls[i] = buildCurl(i)); c.style.transform = `translateZ(${(z + .6).toFixed(2)}px)`; if (!c._on) { c.style.visibility = 'visible'; c._on = true; } bend(c, e); if (leaf._vh !== 1) { leaf.style.visibility = 'hidden'; leaf._vh = 1; } }
-      else { if (curls[i] && curls[i]._on) { curls[i].style.visibility = 'hidden'; curls[i]._on = false; } if (leaf._vh) { leaf.style.visibility = ''; leaf._vh = 0; } }
+      leaf.style.transform = turning ? PARK : `translateZ(${z.toFixed(2)}px) rotateY(${(-180 * e).toFixed(3)}deg)`;
+      leaf.style.zIndex = t < .5 ? 100 + (n - i) : i + 1;
+      if (turning) { const c = curls[i] || (curls[i] = buildCurl(i)); c.style.transform = `translateZ(${(z + .6).toFixed(2)}px)`; if (!c._on) { wake(c); syncCurlVideos(c, i); c._on = true; } bend(c, e); }
+      else if (curls[i] && curls[i]._on) { park(curls[i]); curls[i]._on = false; }
       if (!CURL || !turning) { leaf._f._shade.style.opacity = s * .85; leaf._b._shade.style.opacity = s * .85; }
       // page-flick sound as the leaf crosses the spine
       const side = t >= .5 ? 1 : 0;
@@ -311,32 +369,55 @@ export function mount(root) {
   function tick(ts) {
     if (!alive) return;
     const target = progress(), dt = lastTs ? Math.min(50, ts - lastTs) : 16; lastTs = ts;
-    shown += (target - shown) * (reduce ? 1 : 1 - Math.exp(-dt / 95));
+    shown += (target - shown) * (reduce ? 1 : 1 - Math.exp(-dt / (drag ? 45 : 80)));
     if (Math.abs(target - shown) < .0006) shown = target;
     render(shown);
     if (shown !== target) requestAnimationFrame(tick);
     else { loopOn = false; lastTs = 0; warmSoon(); }
   }
   function kick() { if (!loopOn) { loopOn = true; requestAnimationFrame(tick); } }
-  /* pre-build the bending strips for the leaves you're about to turn, while nothing is moving */
+  /* pre-build the bending copy of every leaf while nothing is moving, nearest first, one per idle
+     slice, and keep them. Building one mid-turn costs a visible stall, and reading quickly through
+     several pages used to hit that on every leaf. */
   let warmT = 0;
+  const idle = window.requestIdleCallback ? (fn) => requestIdleCallback(fn, { timeout: 600 }) : (fn) => setTimeout(fn, 60);
   function warmSoon() {
     clearTimeout(warmT);
-    warmT = setTimeout(() => {
-      if (!alive) return;
-      if (!CURL || loopOn) return;
-      const s = Math.round(shown), want = [s - 1, s, s + 1].filter(i => i >= 0 && i < leaves.length && (mode === 'spread' || i < turns));
-      Object.keys(curls).forEach(k => { if (Math.abs(k - s) > 2) { curls[k].remove(); delete curls[k]; } });
-      const next = want.find(i => !curls[i]);
+    warmT = setTimeout(() => idle(() => {
+      if (!alive || !CURL || loopOn || !ready) return;
+      const s = Math.round(shown), turnable = mode === 'spread' ? leaves.length : turns;
+      const order = [...Array(turnable).keys()].sort((a, b) => Math.abs(a - s + .4) - Math.abs(b - s + .4));
+      const next = order.find(i => !curls[i]);
       if (next !== undefined) { curls[next] = buildCurl(next); warmSoon(); }
-    }, 120);
+    }), 80);
   }
   function label(s) {
     const idx = mode === 'spread' ? (s === 0 ? [0] : [2 * s - 1, 2 * s].filter(i => i < pages.length)) : [s];
     return idx.map(i => `p. ${pages[i].dataset.num || '—'} <b>${pages[i].dataset.title}</b>`).join(' &nbsp;/&nbsp; ');
   }
-  function goSpread(s) { s = clamp(s, 0, turns); scrollTo({ top: track.offsetTop + s * innerHeight, behavior: reduce ? 'auto' : 'smooth' }); }
-  function goPage(i) { goSpread(mode === 'spread' ? Math.ceil(i / 2) : Math.min(i, turns)); }
+  // Every turn the magazine makes is its own tween of the scroll position (never the browser's smooth
+  // scroll, whose speed varies): ~0.55s for one page, a little longer for a jump across several.
+  let anim = 0, animating = false, lastAimY = 0;
+  const easeIO = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+  function scrollToY(y, dur) {
+    cancelAnimationFrame(anim); animating = false; lastAimY = y;
+    if (reduce || !dur) { scrollTo({ top: y, behavior: 'instant' }); return; }
+    const y0 = scrollY, d = y - y0, t0 = performance.now(); if (Math.abs(d) < 1) return;
+    animating = true;
+    const step = now => {
+      if (!alive) return;
+      const k = Math.min(1, (now - t0) / dur);
+      scrollTo({ top: y0 + d * easeIO(k), behavior: 'instant' });
+      if (k < 1) anim = requestAnimationFrame(step); else animating = false;
+    };
+    anim = requestAnimationFrame(step);
+  }
+  function goSpread(s, instant, dur) {
+    s = clamp(Math.round(s), 0, turns);
+    const from = progress(), dist = Math.abs(s - from);
+    scrollToY(track.offsetTop + s * unit, instant ? 0 : (dur ?? (dist <= 1 ? 340 + 260 * dist : 600 + 160 * Math.min(dist, 5))));
+  }
+  function goPage(i, instant) { goSpread(mode === 'spread' ? Math.ceil(i / 2) : Math.min(i, turns), instant); }
 
   /* ── page-flick sound: filtered noise, shaped like paper moving through air ── */
   let ac = null, soundOn = false, lastFwip = 0;
@@ -425,43 +506,125 @@ export function mount(root) {
 
   /* ── input ── */
   on(document, 'click', e => {
-    const a = e.target.closest('[data-go]'); if (!a) return;
-    e.preventDefault(); closeMenu(); goPage(+a.dataset.go);
-  });
+    const a = e.target.closest('[data-go]'); if (!a || !root.contains(a)) return;
+    e.preventDefault(); e.stopPropagation(); closeMenu(); goPage(+a.dataset.go);
+  }, true);   // capture phase: runs before Astro's router sees the click
   const btn = root.querySelector('#mag-menu-btn');
   function closeMenu() { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); }
   btn.onclick = e => { e.stopPropagation(); list.hidden = !list.hidden; btn.setAttribute('aria-expanded', String(!list.hidden)); };
+  /* ── input: one gesture, one page ──────────────────────────────────────────────────────────── */
+  // where the magazine is heading (the page an in-flight turn will land on), so repeated input stacks
+  const aim = () => animating ? Math.round((scrollTarget() - track.offsetTop) / unit) : cur();
+  const scrollTarget = () => lastAimY;
+  const turnBy = n => goSpread(clamp(aim() + n, 0, turns));
+
+  // Keyboard: arrows, Page Up/Down, Space, Home/End. Left alone inside form fields and on buttons/links.
   on(document, 'keydown', e => {
     if (e.key === 'Escape') closeMenu();
-    if (e.target.closest('input,textarea')) return;
-    if (e.key === 'ArrowRight') { e.preventDefault(); goSpread(cur() + 1); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); goSpread(cur() - 1); }
+    if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest('input,textarea,select,[contenteditable]')) return;
+    const onControl = e.target.closest('button,a,summary');
+    const k = e.key;
+    if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'PageDown' || (k === ' ' && !e.shiftKey && !onControl)) { e.preventDefault(); turnBy(1); }
+    else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'PageUp' || (k === ' ' && e.shiftKey && !onControl)) { e.preventDefault(); turnBy(-1); }
+    else if (k === 'Home') { e.preventDefault(); goSpread(0); }
+    else if (k === 'End') { e.preventDefault(); goSpread(turns); }
   });
   on(document, 'click', e => { if (!e.target.closest('.menu')) closeMenu(); });
-  // horizontal swipe on phones turns pages too
-  let sx = 0, sy = 0;
-  on(window, 'touchstart', e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
-  on(window, 'touchend', e => {
-    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) goSpread(cur() + (dx < 0 ? 1 : -1));
-  }, { passive: true });
 
-  on(window, 'scroll', kick, { passive: true });
-  let rt; on(window, 'resize', () => { clearTimeout(rt); rt = setTimeout(() => alive && build(), 120); });
+  // Mouse wheel and trackpad: a notch, or one swipe, turns one page. After a turn, a trackpad keeps
+  // sending shrinking "momentum" deltas for a second or more; that tail is ignored until something
+  // clearly new starts — deltas growing again, a repeated mouse notch, a pause, or a change of direction.
+  let wheelAcc = 0, wheelLock = 0, lastWheelT = 0, prevMag = 0, inTail = false, lastWheelTurnDir = 0;
+  on(window, 'wheel', e => {
+    if (e.ctrlKey) return;                          // pinch-zoom on a trackpad
+    if (e.target.closest && e.target.closest('#mag-menu')) return;
+    e.preventDefault();
+    const scale = e.deltaMode === 1 ? 32 : e.deltaMode === 2 ? unit : 1;
+    const dx = e.deltaX * scale, dy = e.deltaY * scale, d = Math.abs(dx) > Math.abs(dy) ? dx : dy, mag = Math.abs(d);
+    if (!mag) return;
+    const now = performance.now(), gap = now - lastWheelT; lastWheelT = now;
+    const fresh = Math.sign(d) !== lastWheelTurnDir     // reversed
+      || mag > prevMag * 1.25 + 1                      // a new swipe ramping up
+      || (mag >= 50 && mag >= prevMag)                 // another mouse-wheel notch
+      || (gap > 250 && mag >= 3 && mag >= prevMag)     // a pause, then a real push (a stalled tail keeps shrinking)
+      || gap > 1200;
+    prevMag = mag;
+    if (now < wheelLock) return;                    // the swipe that just turned is often still speeding up
+    if (fresh) inTail = false;
+    if (gap > 250) wheelAcc = 0;
+    if (inTail) return;
+    wheelAcc += d;
+    if (Math.abs(wheelAcc) >= 28) {
+      const dir = Math.sign(wheelAcc); wheelAcc = 0; lastWheelTurnDir = dir;
+      turnBy(dir); inTail = true; wheelLock = now + 380;
+    }
+  }, { passive: false });
+
+  // Touch: the page follows your finger. Drag up (or left) to turn forward; let go past about a
+  // quarter of the way, or with a flick, and it finishes the turn — otherwise it settles back.
+  let drag = null;
+  on(window, 'touchstart', e => {
+    if (e.touches.length !== 1 || e.target.closest('.bar,#mag-menu')) { drag = null; return; }
+    cancelAnimationFrame(anim); animating = false;
+    const tch = e.touches[0];
+    drag = { x0: tch.clientX, y0: tch.clientY, p0: Math.round(progress()), pStart: progress(), axis: null, t0: performance.now(), samples: [[performance.now(), progress()]] };
+  }, { passive: true });
+  on(window, 'touchmove', e => {
+    if (!drag || e.touches.length !== 1) return;
+    const tch = e.touches[0], dx = tch.clientX - drag.x0, dy = tch.clientY - drag.y0;
+    if (!drag.axis) { if (Math.max(Math.abs(dx), Math.abs(dy)) < 8) return; drag.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y'; }
+    e.preventDefault();
+    const span = drag.axis === 'y' ? unit * .6 : pw * .85;
+    const moved = -(drag.axis === 'y' ? dy : dx) / span;
+    const p = clamp(drag.pStart + moved, Math.max(0, drag.p0 - 1), Math.min(turns, drag.p0 + 1));
+    scrollTo({ top: track.offsetTop + p * unit, behavior: 'instant' });
+    drag.samples.push([performance.now(), p]); if (drag.samples.length > 6) drag.samples.shift();
+  }, { passive: false });
+  const endDrag = () => {
+    if (!drag) return;
+    const d = drag; drag = null;
+    if (!d.axis) return;                            // a tap: leave links and buttons alone
+    const now = performance.now(), p = progress();
+    const recent = d.samples.filter(([t]) => now - t < 120), [ta, pa] = recent[0] || d.samples[0], [tb, pb] = d.samples[d.samples.length - 1];
+    const v = tb > ta ? (pb - pa) / (tb - ta) : 0;   // pages per ms, over the last ~120ms
+    const delta = p - d.p0, quick = now - d.t0 < 280 && Math.abs(p - d.pStart) > .08;  // a short, fast swipe
+    const fwd = delta > .25 || v > .0012 || (quick && p > d.pStart), back = delta < -.25 || v < -.0012 || (quick && p < d.pStart);
+    const target = d.p0 + (fwd && !back ? 1 : back && !fwd ? -1 : 0);
+    goSpread(target, false, 260 + 320 * Math.min(1, Math.abs(target - p)));
+  };
+  on(window, 'touchend', endDrag, { passive: true });
+  on(window, 'touchcancel', endDrag, { passive: true });
+
+  // Anything else that scrolls the page (the scrollbar, find-in-page, a screen reader) gets settled
+  // onto the nearest page once it stops, so the magazine never rests half-turned.
+  let settleT = 0;
+  on(window, 'scroll', () => {
+    kick();
+    clearTimeout(settleT);
+    if (animating || drag) return;
+    settleT = setTimeout(() => {
+      if (!alive || animating || drag || performance.now() - lastWheelT < 200) return;
+      const p = progress(), r = Math.round(p);
+      if (Math.abs(p - r) > .002) goSpread(r);
+    }, 180);
+  }, { passive: true });
+  let rt; on(window, 'resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (alive && (innerWidth !== builtW || (probe.offsetHeight || innerHeight) !== builtU)) build(); }, 120); });
   build();
 
   /* Links from the long-form issue pages can open a specific printed page
      (for example /#p1 opens Contents). Wait until build has measured the
      book, then place that page in view. Plain / still opens on the cover. */
   const deepLink = location.hash.match(/^#p(\d+)$/);
-  if (deepLink) setTimeout(() => alive && goPage(Number(deepLink[1])), 0);
+  if (deepLink) setTimeout(() => alive && goPage(Number(deepLink[1]), true), 0);
+  on(window, 'hashchange', () => { const m = location.hash.match(/^#p(\d+)$/); if (m) goPage(Number(m[1])); });
 
   return function teardown() {
     alive = false;
     offs.forEach(off => off());
     html.style.scrollSnapType = prevSnap;
     root.classList.remove('is-live');
-    clearTimeout(warmT); clearTimeout(fadeT); cancelAnimationFrame(eqRaf);
+    clearTimeout(warmT); clearTimeout(fadeT); clearTimeout(settleT); cancelAnimationFrame(eqRaf); cancelAnimationFrame(anim);
     try { if (song) { song.pause(); song.src = ''; } if (ac) ac.close(); } catch (e) {}
     root.querySelectorAll('video').forEach(v => v.pause());
   };
