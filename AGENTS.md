@@ -29,12 +29,14 @@ Its files are `site/src/pages/index.astro`, `site/src/layouts/Base.astro`, `site
 
 Preserve these magazine behavior fixes when changing its animation:
 
-1. Freeze videos to canvases during page turns; video playback otherwise draws above the 3D scene.
-2. Keep prebuilt bending strips `visibility:hidden` at rest to avoid visible seams.
+1. Freeze videos to canvases during page turns; video playback otherwise draws above the 3D scene. Only draw frames for faces that are showing, and keep the bending copies' video slots as `canvas.vpost` (painted with the poster, then the live frame when a turn starts).
+2. Park idle bending copies off-screen (`translate3d(-12000px,0,0)` + `content-visibility:hidden`, no `will-change`). Don't toggle `visibility` to hide them — it restyles every strip and causes the stutter at the start of a turn.
 3. Keep the front face's `translateZ(.01px)` so Chrome sends clicks to page links.
 4. Keep `.pg` at `box-sizing:border-box` so bottom content is not clipped.
 5. Avoid `mix-blend-mode` inside the 3D magazine scene.
 6. Mount on `astro:page-load` and tear down on `astro:before-swap` to avoid leaked listeners and audio.
+7. Page turning is driven by `magazine.ts` (wheel, trackpad, touch drag, keys, links), not CSS `scroll-snap`. One wheel notch or one trackpad swipe = one page; the momentum tail is ignored. Page height comes from a `100svh` probe so the phone address bar can't misalign pages.
+8. Keep the mobile nav's Book button visible at every width.
 
 ## Work still pending
 
