@@ -323,8 +323,9 @@
 .mag .vfreeze{position:absolute;pointer-events:none;display:none}
 .mag .pg--dj .vpost,
 .mag .audio__frame .vpost{position:absolute;inset:0}
-.mag .book-el.moving .face video{visibility:hidden}
-.mag .book-el.moving .vfreeze{display:block}
+/* the bending copy of a page holds its videos as canvases, so a frame can be copied straight in */
+.mag .pg canvas.vpost{display:block;width:100%;height:100%}
+.mag .cover__media canvas.vpost{position:absolute;inset:0;transform:scale(1.9) translateY(4%)}
 
 /* ── the bending page: while a leaf turns, it's drawn as a chain of hinged strips so the paper curls ── */
 .mag .curl{position:absolute;top:0;transform-style:preserve-3d;pointer-events:none}
@@ -335,7 +336,6 @@
 .mag .sl--blank{background:var(--paper-300)}
 .mag .sl > .pg{position:absolute;top:0;aspect-ratio:auto;max-width:none}
 .mag .sl *{animation:none!important;transition:none!important}
-.mag .strip{will-change:transform}
 /* one light layer per strip face, exactly one strip wide (never over the overlap), with its
    brightness blended edge-to-edge so neighbouring strips meet without a step */
 .mag .sshade{position:absolute;top:0;bottom:0;pointer-events:none;z-index:40}
@@ -374,7 +374,9 @@
 .mag .dots button{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--text-1);background:transparent;padding:0;cursor:pointer;transition:transform .25s var(--spring),background .2s}
 .mag .dots button[aria-current]{background:var(--pink);border-color:var(--pink);transform:scale(1.35)}
 @media (max-width:760px){.mag .where,
-.mag .dots{display:none}.mag .bar{gap:8px}.mag .pill{padding:9px 11px;font-size:11px}}
+.mag .dots{display:none}.mag .bar{gap:8px}.mag .pill{padding:9px 11px;font-size:11px;white-space:nowrap}}
+/* small phones (iPhone SE and similar): tighten the bar so every button stays on one line */
+@media (max-width:380px){.mag .bar{gap:6px;padding-inline:12px}.mag .pill{padding:9px 8px;letter-spacing:.05em}}
 @media (prefers-reduced-motion:reduce){
   .mag .drop,
 .mag .hint{animation:none}
