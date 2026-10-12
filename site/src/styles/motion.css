@@ -1,0 +1,126 @@
+/* ═══════════════════════════════════════════════════════════════
+   MOTION LAYER — styles. Driven by scripts/motion.ts and
+   scripts/motion-inner.ts. Notes: site/MOTION.md.
+
+   Nothing here applies to the homepage magazine (it never gets the `mo`
+   class) and nothing here hides anything unless the motion layer is
+   about to take it over.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Until the motion layer takes over, an issue page's blocks wait hidden,
+   so nothing is seen first and then snatched away. `mo` is only ever set
+   when motion is allowed, and a 4 s failsafe removes it. */
+html.mo:not(.mo-ready) main.issue-page .wrap > *:not([data-mo-fold]) { opacity: 0; }
+/* On screen at first paint: shown at once (so first paint and LCP don't
+   wait), but the photos are still undeveloped, the tape isn't on yet and
+   "— Liz" isn't written, until the motion layer arrives to do it. */
+html.mo:not(.mo-ready) [data-mo-fold] .polaroid__win::after { opacity: 1; }
+html.mo:not(.mo-ready) [data-mo-fold] :is(.tape, .hand) { opacity: 0; }
+
+/* Entrances move the separate translate/rotate properties, which stack
+   on top of each object's own `transform` tilt and hover lift. */
+/* a headline waiting to be set line by line */
+html.mo [data-mo-head] { opacity: 0; }
+
+html.mo [data-mo] { translate: 0 var(--mo-y, 0px); rotate: var(--mo-r, 0deg); }
+
+/* Polaroid tilt toward the cursor (desktop): rotateX + rotateY folded into
+   one axis-and-angle rotation. Browsers without hypot() simply skip it. */
+html.mo [data-mo-tilt] {
+  rotate: var(--mo-rx, 0) var(--mo-ry, 0) .0001 calc(hypot(var(--mo-rx, 0), var(--mo-ry, 0)) * 1deg);
+}
+html.mo [data-mo-tilt][data-mo] { rotate: var(--mo-r, 0deg); }
+
+/* Book buttons lean toward the cursor (desktop). */
+html.mo [data-mo-magnet] { translate: var(--mo-mx, 0px) var(--mo-my, 0px); }
+
+/* Tape drifts a few px with the scroll (desktop only). */
+html.mo main.issue-page .tape { translate: 0 var(--mo-py, 0px); }
+/* While her track plays: the corner icon pulses, the Book button breathes. */
+html.mo .dock__ico { scale: calc(1 + var(--mo-beat, 0) * .22); }
+html.mo main.issue-page .band__btn { scale: calc(1 + var(--mo-beat, 0) * .03); }
+
+/* Polaroids develop: a warm wash over the photo that fades off. */
+html.mo .polaroid__win::after {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 38%, rgba(255, 248, 240, .94), rgba(238, 206, 190, .97));
+  opacity: var(--mo-dev, 0);
+}
+
+.mo-count { font-variant-numeric: tabular-nums; }
+
+/* Lenis's own stylesheet (lenis@1.3.26, MIT, darkroom.engineering),
+   inlined: it only applies while Lenis is running (html.lenis). */
+html.lenis, html.lenis body { height: auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent], .lenis [data-lenis-prevent-wheel], .lenis [data-lenis-prevent-touch],
+.lenis [data-lenis-prevent-vertical], .lenis [data-lenis-prevent-horizontal] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* ── The booking moment ── */
+#booking legend { position: relative; }
+.mo-check {
+  position: absolute; left: -.62em; top: 50%; translate: 0 -54%;
+  width: 1.9em; height: 1.6em; overflow: visible; pointer-events: none;
+}
+.mo-check path {
+  fill: none; stroke: var(--pink-deep); stroke-width: 2.6;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1; stroke-dashoffset: 1;
+}
+#out { position: relative; }
+.mo-stamp {
+  position: absolute; top: -.2rem; right: .2rem; z-index: 3; pointer-events: none;
+  padding: .28em .6em .2em;
+  font: 400 clamp(1.3rem, 2.6vw, 1.9rem)/1 var(--font-display, Anton, sans-serif);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--pink-deep);
+  border: .14em solid currentColor; border-radius: .18em;
+  box-shadow: inset 0 0 0 .1em var(--paper-100), inset 0 0 0 .2em currentColor;
+  opacity: 0;
+}
+.mo-scraps { position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 90; }
+
+/* ── Opening and closing the issue (view transitions) ──
+   OPEN: the printed magazine page (named at click time) grows into this
+   screen-sized stand-in on the new issue page, lifting as it goes, while
+   the sheet underneath fades up. CLOSE: the sheet folds away; the
+   magazine's own desk drop-in follows. */
+.mo-vt-sheet {
+  position: fixed; z-index: -1; pointer-events: none;
+  left: 50%; translate: -50% 0; bottom: 0;
+  top: calc(4.25rem + clamp(2rem, 5vw, 4.5rem));
+  width: min(calc(100% - 2rem), 86rem);
+  view-transition-name: loya-sheet;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html[data-loya-vt="open"]::view-transition-group(loya-sheet) {
+    animation-duration: .72s; animation-timing-function: cubic-bezier(.22, .68, .36, 1);
+  }
+  html[data-loya-vt="open"]::view-transition-image-pair(loya-sheet) { animation: mo-lift .72s cubic-bezier(.22, .68, .36, 1) both; }
+  html[data-loya-vt="open"]::view-transition-old(loya-sheet) { animation: mo-sheet-out .72s ease both; }
+  html[data-loya-vt="open"]::view-transition-new(loya-sheet) { animation: none; opacity: 0; }
+  html[data-loya-vt="open"]::view-transition-old(root) { animation: mo-fade-out .3s ease both; }
+  html[data-loya-vt="open"]::view-transition-new(root) { animation: mo-fade-in .45s .3s ease both; }
+
+  html[data-loya-vt="close"]::view-transition-old(root) {
+    animation: mo-close .55s cubic-bezier(.55, 0, .75, .2) both; transform-origin: 50% 0;
+  }
+  html[data-loya-vt="close"]::view-transition-new(root) { animation: mo-fade-in .4s .26s ease both; }
+}
+@keyframes mo-lift {
+  0%   { transform: none; }
+  38%  { transform: rotate(-2.4deg) scale(1.03); filter: drop-shadow(0 28px 34px rgba(70, 20, 45, .28)); }
+  100% { transform: none; filter: none; }
+}
+@keyframes mo-sheet-out { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes mo-fade-in { from { opacity: 0; } }
+@keyframes mo-fade-out { to { opacity: 0; } }
+@keyframes mo-close {
+  to { opacity: 0; transform: perspective(1400px) rotateX(9deg) translateY(5vh) scale(.84); }
+}
+
+/* Safety net: if the setting flips to reduced motion mid-visit. */
+@media (prefers-reduced-motion: reduce) {
+  html.mo main.issue-page .wrap > * { opacity: 1 !important; }
+}

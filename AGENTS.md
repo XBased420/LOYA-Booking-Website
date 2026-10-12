@@ -38,6 +38,16 @@ Preserve these magazine behavior fixes when changing its animation:
 7. Page turning is driven by `magazine.ts` (wheel, trackpad, touch drag, keys, links), not CSS `scroll-snap`. One wheel notch or one trackpad swipe = one page; the momentum tail is ignored. Page height comes from a `100svh` probe so the phone address bar can't misalign pages.
 8. Keep the mobile nav's Book button visible at every width.
 
+## Motion layer (inner pages)
+
+The issue pages have a GSAP + Lenis motion layer: paste-up entrances, the open and close view transitions with the magazine, the music-reactive corner icon, desktop tilt and magnet, and the booking rings and RECEIVED stamp. Read `site/MOTION.md` before changing any of it. The short version:
+
+- It never runs on the homepage. `magazine.ts` owns that page. Lenis is desktop-only on issue pages, and reduced motion loads nothing.
+- Never animate `transform` on paper, polaroids, tape, cards or buttons. Use the `--mo-*` custom properties that drive `translate` and `rotate`.
+- Never hide above-the-fold content, and never use `visibility` to hide anything waiting to animate.
+- No `filter` on the issue sheet or other large ancestors. Don't continuously animate the matte tape (`backdrop-filter`).
+- The RECEIVED stamp keys only on the real "Request sent." line. Test it against a mocked endpoint only.
+
 ## Work still pending
 
 - The local `main` branch has seven unpushed booking-sheet and documentation commits. It diverged from GitHub `main` while the magazine deployment was fixed. Reconcile the branches before using `PUSHTOGITHUB.bat`, which always pushes local `main`; review those commits before publishing them.

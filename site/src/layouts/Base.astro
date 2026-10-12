@@ -1,6 +1,7 @@
 ---
 import { u } from "../lib/url";import "../styles/global.css";
 import "../styles/issue.css";
+import "../styles/motion.css";
 import Nav from "../components/Nav.astro";
 import SiteAudio from "../components/SiteAudio.astro";
 import { site, nav, isPlaceholder, channelHref, contactChannels } from "../data/site";
@@ -73,6 +74,12 @@ const grain =
       first document load. It also removes the white flash between
       pages. With JS off, every link still works as a plain href. */}
   <ClientRouter />
+  {/* Motion layer (see site/MOTION.md). On a full page load this marks an
+      issue page before first paint, so its blocks wait for the motion layer
+      instead of showing and then being snatched away. Only when motion is
+      allowed; a failsafe shows everything if the motion code never arrives.
+      Never on the homepage magazine. */}
+  {!bare && <script is:inline>(function(){var h=document.documentElement;if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;h.classList.add("mo");window.__moT=setTimeout(function(){if(!h.classList.contains("mo-ready")){h.classList.remove("mo");dispatchEvent(new Event("loya:motion-fallback"))}},4000)})();</script>}
   <script type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Person",
@@ -126,6 +133,11 @@ const grain =
       </main>
     </div>
   )}
+  {/* Motion layer: whatever is on screen at first paint renders straight
+      away (it only "develops" once the motion code lands); only what's
+      below the fold waits to be pasted in. Keeps the page's first paint and
+      LCP where they were. See site/MOTION.md. */}
+  {!bare && <script is:inline>(function(){var h=document.documentElement;if(!h.classList.contains("mo"))return;var H=innerHeight;document.querySelectorAll("main.issue-page .wrap > *").forEach(function(el){if(el.getBoundingClientRect().top<H)el.setAttribute("data-mo-fold","")})})();</script>}
   {!bare && <footer class="foot issue-footer">
     <div class="wrap">
       <p class="display name">{site.name}</p>
@@ -231,6 +243,10 @@ const grain =
     const reveal = () => {
       io?.disconnect();
       io = null;
+      /* The motion layer (scripts/motion-inner.ts) owns these blocks when it
+         runs. This fade is the fallback: reduced-motion changes, a failed
+         load ("loya:motion-fallback"), or the motion code turned off. */
+      if (document.documentElement.classList.contains("mo")) return;
       if (revealMq.matches) {
         /* Clear any state from before the setting changed, so nothing is
            left stranded at opacity 0. */
@@ -284,6 +300,10 @@ const grain =
     reveal();
     revealMq.addEventListener("change", reveal);
     document.addEventListener("astro:page-load", reveal);
+    addEventListener("loya:motion-fallback", reveal);
+  </script>
+  <script>
+    import "../scripts/motion";
   </script>
 </body>
 </html>

@@ -20,7 +20,10 @@ body.issue-body {
   width: min(calc(100% - 2rem), 86rem);
   margin: clamp(2rem, 5vw, 4.5rem) auto 0;
   padding-left: clamp(.35rem, 1.2vw, 1rem);
-  filter: drop-shadow(0 1.2rem 2.4rem rgba(70, 20, 45, .14));
+  /* The sheet's soft shadow lives on .issue-page as a box-shadow. It used
+     to be filter: drop-shadow here, which made the browser re-filter the
+     whole page whenever anything inside it moved (every reveal, every
+     hover) and turned this into the containing block for anything fixed. */
 }
 
 .issue-page {
@@ -37,7 +40,8 @@ body.issue-body {
     2px 1px 0 var(--paper-300),
     4px 2px 0 rgba(255, 253, 252, .9),
     6px 3px 0 var(--paper-400),
-    10px 7px 0 rgba(173, 44, 109, .18);
+    10px 7px 0 rgba(173, 44, 109, .18),
+    0 1.2rem 2.4rem rgba(70, 20, 45, .14);
 }
 
 .issue-page::before {
